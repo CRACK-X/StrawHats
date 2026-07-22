@@ -52,8 +52,10 @@ export async function PATCH(req: NextRequest) {
   }
 
   if (action === 'approve') {
-    // 1. Find the auth user by email (user was created at signup time)
-    const { data: authUser, error: authError } = await admin.auth.admin.getUserByEmail(request.email);
+    // 1. Find the auth user by user_id from signup_requests
+    const { data: authUser, error: authError } = request.user_id
+      ? await admin.auth.admin.getUserById(request.user_id)
+      : { data: null, error: { message: 'No user_id on signup request' } };
 
     if (authError || !authUser) {
       return NextResponse.json({ error: 'Auth user not found. The user may need to sign up again.' }, { status: 404 });
@@ -63,7 +65,7 @@ export async function PATCH(req: NextRequest) {
     const { error: profileError } = await admin
       .from('profiles')
       .update({ pending: false })
-      .eq('id', authUser.id);
+      .eq('id', authUser.user.id);
 
     if (profileError) {
       return NextResponse.json({ error: `Failed to approve profile: ${profileError.message}` }, { status: 500 });
@@ -73,7 +75,7 @@ export async function PATCH(req: NextRequest) {
     if (request.invite_code_id) {
       await admin
         .from('member_ids')
-        .update({ status: 'used', used_by: authUser.id, used_at: new Date().toISOString() })
+        .update({ status: 'used', used_by: authUser.user.id, used_at: new Date().toISOString() })
         .eq('id', request.invite_code_id);
     }
 
@@ -110,9 +112,8 @@ export async function PATCH(req: NextRequest) {
   } else {
     // REJECT
     // 1. Find and delete auth user if they exist
-    const { data: authUser } = await admin.auth.admin.getUserByEmail(request.email);
-    if (authUser) {
-      await admin.auth.admin.deleteUser(authUser.id);
+    if (request.user_id) {
+      await admin.auth.admin.deleteUser(request.user_id);
     }
 
     // 2. Release the invite code back to 'unused'

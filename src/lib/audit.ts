@@ -13,6 +13,7 @@ export type AuditAction =
   | 'password_reset_fail'
   | 'logout'
   | 'signup'
+  | 'signup_created'
   | 'admin_user_update'
   | 'admin_role_change'
   | 'admin_approve_user'

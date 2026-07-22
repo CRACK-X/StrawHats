@@ -92,8 +92,8 @@ export default function Robot3D() {
     <div className="w-full h-[400px] md:h-[500px] relative">
       <Canvas
         camera={{ position: [4, 3, 5], fov: 40 }}
-        shadows={{ type: THREE.PCFSoftShadowMap }}
-        gl={{ failIfMajorPerformanceCaveat: false, antialias: true }}
+        shadows="soft"
+        gl={{ antialias: true }}
         dpr={[1, 1.5]}
       >
         <MouseTracker mouse={mouse.current} />
@@ -130,7 +130,7 @@ export default function Robot3D() {
           far={4}
         />
 
-        <Environment preset="underwater" environmentIntensity={0.4} />
+        <Environment preset="night" environmentIntensity={0.4} />
 
         <OrbitControls
           enableZoom={false}

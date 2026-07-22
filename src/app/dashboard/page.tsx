@@ -25,7 +25,7 @@ interface TeamMember { full_name: string; member_id: string; role: string; bio: 
 
 type Tab = 'overview' | 'events' | 'competitions' | 'announcements' | 'team' | 'skills' | 'documents' | 'contact';
 
-const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
+const navItems: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
   { id: 'events', label: 'Events', icon: Calendar },
   { id: 'competitions', label: 'Competitions', icon: Trophy },

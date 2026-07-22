@@ -32,7 +32,7 @@ interface TeamRole { id: string; name: string; sort_order: number; }
 
 type Tab = 'overview' | 'signups' | 'users' | 'attendance' | 'codes' | 'messages' | 'events' | 'competitions' | 'announcements' | 'documents' | 'skills' | 'logs';
 
-const navItems: { id: Tab; label: string; icon: React.ElementType; count?: number }[] = [
+const navItems: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }>; count?: number }[] = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
   { id: 'signups', label: 'Signups', icon: UserPlus },
   { id: 'users', label: 'Users', icon: Users },
