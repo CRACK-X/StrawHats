@@ -29,56 +29,31 @@ function StrawHat() {
     }
   });
 
-  const strawColor = '#d4a843';
-  const strawDarkColor = '#b8922e';
-  const ribbonColor = '#c0392b';
-
   return (
-    <group ref={groupRef} scale={0.8} position={[0, -0.5, 0]}>
-      {/* Brim - flat wide disc */}
-      <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[3.2, 3.2, 0.1, 64]} />
-        <meshStandardMaterial color={strawColor} roughness={0.8} metalness={0.05} />
-      </mesh>
-
-      {/* Brim edge ring */}
-      <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[3.2, 0.05, 8, 64]} />
-        <meshStandardMaterial color={strawDarkColor} roughness={0.7} metalness={0.1} />
+    <group ref={groupRef} scale={0.9}>
+      {/* Brim */}
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[3, 3, 0.1, 64]} />
+        <meshStandardMaterial color="#d4a843" roughness={0.8} />
       </mesh>
 
       {/* Crown */}
-      <mesh position={[0, 0.65, 0]}>
-        <cylinderGeometry args={[1.5, 1.7, 1.2, 64]} />
-        <meshStandardMaterial color={strawColor} roughness={0.8} metalness={0.05} />
+      <mesh position={[0, 0.7, 0]}>
+        <cylinderGeometry args={[1.4, 1.6, 1.2, 64]} />
+        <meshStandardMaterial color="#d4a843" roughness={0.8} />
       </mesh>
 
-      {/* Crown top - rounded */}
-      <mesh position={[0, 1.25, 0]}>
-        <sphereGeometry args={[1.5, 64, 32, 0, Math.PI * 2, 0, Math.PI / 3]} />
-        <meshStandardMaterial color={strawColor} roughness={0.8} metalness={0.05} />
+      {/* Crown top dome */}
+      <mesh position={[0, 1.3, 0]}>
+        <sphereGeometry args={[1.4, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial color="#d4a843" roughness={0.8} />
       </mesh>
 
-      {/* Red ribbon band */}
-      <mesh position={[0, 0.08, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[1.65, 0.1, 8, 64]} />
-        <meshStandardMaterial color={ribbonColor} roughness={0.4} metalness={0.15} />
+      {/* Red ribbon */}
+      <mesh position={[0, 0.15, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[1.55, 0.1, 8, 64]} />
+        <meshStandardMaterial color="#c0392b" roughness={0.4} />
       </mesh>
-
-      {/* Straw texture lines on brim - lying flat */}
-      {[...Array(20)].map((_, i) => {
-        const angle = (i / 20) * Math.PI * 2;
-        return (
-          <mesh
-            key={i}
-            position={[Math.cos(angle) * 1.6, 0.06, Math.sin(angle) * 1.6]}
-            rotation={[Math.PI / 2, 0, angle]}
-          >
-            <boxGeometry args={[0.02, 2.8, 0.01]} />
-            <meshStandardMaterial color={strawDarkColor} roughness={0.9} transparent opacity={0.25} />
-          </mesh>
-        );
-      })}
     </group>
   );
 }
