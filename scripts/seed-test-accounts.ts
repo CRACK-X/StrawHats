@@ -70,6 +70,8 @@ const accounts: SeedAccount[] = [
   { email: 'member1@strawhats.test', password: 'TestPass123!', fullName: 'Luffy Monkey', memberId: 'SH001', role: 'member' },
   { email: 'member2@strawhats.test', password: 'TestPass123!', fullName: 'Zoro Roronoa', memberId: 'SH002', role: 'member' },
   { email: 'member3@strawhats.test', password: 'TestPass123!', fullName: 'Nami Navigator', memberId: 'SH003', role: 'member' },
+  { email: 'theat106@gmail.com', password: 'TestPass123!', fullName: 'Theat User', memberId: 'TM-106', role: 'member' },
+  { email: 'threat106@gmail.com', password: 'TestPass123!', fullName: 'Threat User', memberId: 'TM-206', role: 'member' },
 ];
 
 async function seed() {
@@ -129,9 +131,9 @@ async function seed() {
     // No profile — need auth user first
     let userId: string | null = null;
 
-    // Try to find auth user
-    for (const [email, id] of emailByUserId) {
-      if (email === acct.email) { userId = id; break; }
+    // Try to find auth user (emailByUserId maps id→email)
+    for (const [id, emailAddr] of emailByUserId) {
+      if (emailAddr === acct.email) { userId = id; break; }
     }
 
     if (!userId) {
@@ -160,6 +162,16 @@ async function seed() {
     }
 
     if (userId) {
+      // Reset password to ensure it matches seed value
+      try {
+        await apiFetch(`/auth/v1/admin/users/${userId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ password: acct.password }),
+        });
+      } catch {
+        // Password reset is best-effort
+      }
+
       // Trigger auto-created a profile — update it
       await apiFetch(`/rest/v1/profiles?id=eq.${userId}`, {
         method: 'PATCH',

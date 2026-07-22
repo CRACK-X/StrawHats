@@ -1,4 +1,11 @@
 import { Resend } from 'resend';
+import { getTransporter } from './smtp';
+
+export interface EmailResult {
+  delivered: boolean;
+  method: 'smtp' | 'resend' | 'console';
+  error?: string;
+}
 
 interface EmailOptions {
   to: string;
@@ -7,32 +14,59 @@ interface EmailOptions {
   text: string;
 }
 
-export async function sendEmail(options: EmailOptions): Promise<boolean> {
-  const resendApiKey = process.env.RESEND_API_KEY;
+export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
+  const fromName = process.env.EMAIL_FROM_NAME || 'Straw Hats Robotics';
+  const fromEmail = process.env.EMAIL_FROM || 'noreply@example.com';
+  const fromAddress = `${fromName} <${fromEmail}>`;
+  console.log(`[EMAIL] Using from: ${fromAddress}, to: ${options.to}`);
 
-  if (resendApiKey) {
+  // Gmail SMTP via nodemailer (primary — 500/day free)
+  const transporter = getTransporter();
+  if (transporter) {
     try {
-      const resend = new Resend(resendApiKey);
-      await resend.emails.send({
-        from: process.env.EMAIL_FROM || 'Straw Hats Robotics <noreply@example.com>',
+      const info = await transporter.sendMail({
+        from: fromAddress,
         to: options.to,
         subject: options.subject,
         html: options.html,
         text: options.text,
       });
-      return true;
+      console.log(`[EMAIL] SMTP delivered to ${options.to} — messageId: ${info.messageId}`);
+      return { delivered: true, method: 'smtp' };
     } catch (err) {
-      console.error('[EMAIL] Resend failed, falling back to console:', err);
+      console.error(`[EMAIL] SMTP failed for ${options.to}:`, (err as Error).message);
+      // Fall through to Resend
     }
   }
 
-  // Dev fallback: log to console
+  // Strategy 2: Resend API (fallback — free tier only sends to account owner)
+  const resendApiKey = process.env.RESEND_API_KEY;
+  if (resendApiKey) {
+    try {
+      const resend = new Resend(resendApiKey);
+      await resend.emails.send({
+        from: fromAddress,
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        text: options.text,
+      });
+      console.log(`[EMAIL] Resend accepted for ${options.to}`);
+      return { delivered: true, method: 'resend' };
+    } catch (err) {
+      const errMsg = (err as { error?: { message?: string } }).error?.message || (err as Error).message;
+      console.error(`[EMAIL] Resend rejected for ${options.to}:`, errMsg);
+      // Fall through to console
+    }
+  }
+
+  // Strategy 3: Dev console fallback (last resort — email never leaves the server)
   console.log('='.repeat(60));
   console.log(`[DEV EMAIL] To: ${options.to}`);
   console.log(`[DEV EMAIL] Subject: ${options.subject}`);
   console.log(`[DEV EMAIL] Body: ${options.text}`);
   console.log('='.repeat(60));
-  return true;
+  return { delivered: false, method: 'console', error: 'No email provider delivered. Configure SMTP_* or RESEND_API_KEY.' };
 }
 
 export function otpEmailHtml(code: string): { html: string; text: string } {

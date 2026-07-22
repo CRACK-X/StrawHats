@@ -96,19 +96,19 @@ export default function DashboardPage() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
       <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 flex">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-200`}>
-        <div className="p-4 border-b border-slate-800 flex items-center gap-3">
-          {sidebarOpen && <span className="text-white font-bold text-lg">Dashboard</span>}
-          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-slate-400 hover:text-white ml-auto">
-            <ChevronLeft className={`w-4 h-4 transition-transform ${!sidebarOpen ? 'rotate-180' : ''}`} />
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-slate-900/60 backdrop-blur-xl border-r border-white/10 flex flex-col transition-all duration-300`}>
+        <div className="p-4 border-b border-white/5 flex items-center gap-3">
+          {sidebarOpen && <span className="text-white font-bold text-lg tracking-tight">Dashboard</span>}
+          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-slate-400 hover:text-white ml-auto hover:bg-white/5">
+            <ChevronLeft className={`w-4 h-4 transition-transform duration-300 ${!sidebarOpen ? 'rotate-180' : ''}`} />
           </Button>
         </div>
         <nav className="flex-1 p-2 space-y-1">
@@ -116,10 +116,10 @@ export default function DashboardPage() {
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                 activeTab === item.id
-                  ? 'bg-cyan-600/20 text-cyan-400'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  ? 'bg-cyan-500/15 text-cyan-400 shadow-sm shadow-cyan-500/10'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
               }`}
             >
               <item.icon className="w-5 h-5 shrink-0" />
@@ -127,22 +127,22 @@ export default function DashboardPage() {
             </button>
           ))}
         </nav>
-        <div className="p-2 border-t border-slate-800 space-y-1">
+        <div className="p-2 border-t border-white/5 space-y-1">
           <Link href="/">
-            <Button variant="ghost" className="w-full justify-start text-slate-400 hover:text-white">
+            <Button variant="ghost" className="w-full justify-start text-slate-400 hover:text-white hover:bg-white/5">
               <Home className="w-5 h-5 shrink-0" />
               {sidebarOpen && <span className="ml-3">Home</span>}
             </Button>
           </Link>
           {profile?.role === 'admin' && (
             <Link href="/admin">
-              <Button variant="ghost" className="w-full justify-start text-cyan-400 hover:text-cyan-300">
+              <Button variant="ghost" className="w-full justify-start text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10">
                 <Shield className="w-5 h-5 shrink-0" />
                 {sidebarOpen && <span className="ml-3">Admin</span>}
               </Button>
             </Link>
           )}
-          <Button onClick={handleLogout} variant="ghost" className="w-full justify-start text-slate-400 hover:text-white">
+          <Button onClick={handleLogout} variant="ghost" className="w-full justify-start text-slate-400 hover:text-white hover:bg-white/5">
             <LogOut className="w-5 h-5 shrink-0" />
             {sidebarOpen && <span className="ml-3">Logout</span>}
           </Button>
@@ -152,17 +152,17 @@ export default function DashboardPage() {
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
         {/* Header */}
-        <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm px-6 py-4 flex items-center justify-between">
+        <header className="border-b border-white/5 bg-slate-900/40 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-white capitalize">{activeTab === 'overview' ? 'Dashboard' : activeTab}</h1>
+            <h1 className="text-xl font-bold text-white capitalize tracking-tight">{activeTab === 'overview' ? 'Dashboard' : activeTab}</h1>
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right">
               <p className="text-sm font-medium text-white">{profile?.full_name}</p>
               <p className="text-xs text-slate-400">{profile?.member_id}</p>
             </div>
-            <div className="w-9 h-9 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold text-sm">
-              {profile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2)}
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-cyan-500/20">
+          {profile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2)}
             </div>
           </div>
         </header>
@@ -200,25 +200,25 @@ function OverviewTab({ profile, attendance, announcements, events, qrToken, qrLo
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10 hover:border-white/20 transition-all duration-300">
           <CardContent className="p-4">
             <p className="text-xs text-slate-400 mb-1">Member Since</p>
             <p className="text-lg font-bold text-white">{formatDate(profile?.created_at)}</p>
           </CardContent>
         </Card>
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10 hover:border-white/20 transition-all duration-300">
           <CardContent className="p-4">
             <p className="text-xs text-slate-400 mb-1">Attendance</p>
             <p className="text-lg font-bold text-white">{attendance.length} sessions</p>
           </CardContent>
         </Card>
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10 hover:border-white/20 transition-all duration-300">
           <CardContent className="p-4">
             <p className="text-xs text-slate-400 mb-1">Role</p>
             <Badge variant={profile?.role === 'admin' ? 'default' : 'secondary'} className="mt-1">{profile?.role}</Badge>
           </CardContent>
         </Card>
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10 hover:border-white/20 transition-all duration-300">
           <CardContent className="p-4">
             <p className="text-xs text-slate-400 mb-1">Upcoming Events</p>
             <p className="text-lg font-bold text-white">{events.length}</p>
@@ -228,13 +228,13 @@ function OverviewTab({ profile, attendance, announcements, events, qrToken, qrLo
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* QR Code */}
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardHeader className="pb-3">
             <CardTitle className="text-white text-base">Your QR Code</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center space-y-4">
             {qrLoading || !qrToken ? (
-              <div className="w-[180px] h-[180px] bg-slate-800 rounded-lg flex items-center justify-center">
+              <div className="w-[180px] h-[180px] bg-white/5 rounded-xl flex items-center justify-center border border-white/5">
                 <Loader2 className="w-6 h-6 text-slate-500 animate-spin" />
               </div>
             ) : (
@@ -242,14 +242,14 @@ function OverviewTab({ profile, attendance, announcements, events, qrToken, qrLo
                 <QRCodeSVG value={qrToken} size={180} level="H" />
               </div>
             )}
-            <Button variant="outline" size="sm" onClick={regenerateQr} disabled={qrLoading} className="text-slate-400 border-slate-700">
+            <Button variant="outline" size="sm" onClick={regenerateQr} disabled={qrLoading} className="text-slate-400 border-white/10 hover:bg-white/5 hover:text-white">
               {qrLoading ? 'Regenerating...' : 'Regenerate QR'}
             </Button>
           </CardContent>
         </Card>
 
         {/* Announcements */}
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardHeader className="pb-3">
             <CardTitle className="text-white text-base flex items-center gap-2">
               <Megaphone className="w-4 h-4 text-cyan-400" /> Announcements
@@ -260,7 +260,7 @@ function OverviewTab({ profile, attendance, announcements, events, qrToken, qrLo
               <p className="text-slate-500 text-sm text-center py-4">No announcements</p>
             ) : (
               announcements.slice(0, 3).map(a => (
-                <div key={a.id} className={`p-3 rounded-lg ${a.pinned ? 'bg-cyan-500/10 border border-cyan-500/20' : 'bg-slate-800'}`}>
+                <div key={a.id} className={`p-3 rounded-xl ${a.pinned ? 'bg-cyan-500/10 border border-cyan-500/20' : 'bg-white/5'}`}>
                   <p className="text-white text-sm font-medium flex items-center gap-1">
                     {a.pinned && <Pin className="w-3 h-3 text-cyan-400" />} {a.title}
                   </p>
@@ -273,7 +273,7 @@ function OverviewTab({ profile, attendance, announcements, events, qrToken, qrLo
       </div>
 
       {/* Attendance */}
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-white/5 backdrop-blur-xl border-white/10">
         <CardHeader className="pb-3">
           <CardTitle className="text-white text-base flex items-center gap-2">
             <Clock className="w-4 h-4 text-cyan-400" /> Recent Attendance
@@ -285,7 +285,7 @@ function OverviewTab({ profile, attendance, announcements, events, qrToken, qrLo
           ) : (
             <div className="space-y-2">
               {attendance.slice(0, 5).map(r => (
-                <div key={r.id} className="flex justify-between items-center p-3 bg-slate-800 rounded-lg">
+                <div key={r.id} className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
                   <span className="text-white text-sm">{formatDate(r.attended_on)}</span>
                   <span className="text-slate-400 text-xs">
                     Checked in at {(() => { try { return new Date(r.scanned_at).toLocaleTimeString(); } catch { return '—'; } })()}
@@ -304,7 +304,7 @@ function EventsTab({ events }: { events: TeamEvent[] }) {
   return (
     <div className="space-y-4">
       {events.length === 0 ? (
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardContent className="py-12 text-center">
             <Calendar className="w-10 h-10 text-slate-600 mx-auto mb-3" />
             <p className="text-slate-400">No upcoming events</p>
@@ -312,7 +312,7 @@ function EventsTab({ events }: { events: TeamEvent[] }) {
         </Card>
       ) : (
         events.map(e => (
-          <Card key={e.id} className="bg-slate-900 border-slate-800 hover:border-slate-700 transition-colors">
+          <Card key={e.id} className="bg-white/5 backdrop-blur-xl border-white/10 hover:border-white/20 transition-all duration-300">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
@@ -340,7 +340,7 @@ function CompetitionsTab({ competitions }: { competitions: Competition[] }) {
   return (
     <div className="space-y-4">
       {competitions.length === 0 ? (
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardContent className="py-12 text-center">
             <Trophy className="w-10 h-10 text-slate-600 mx-auto mb-3" />
             <p className="text-slate-400">No competitions listed</p>
@@ -348,7 +348,7 @@ function CompetitionsTab({ competitions }: { competitions: Competition[] }) {
         </Card>
       ) : (
         competitions.map(c => (
-          <Card key={c.id} className="bg-slate-900 border-slate-800 hover:border-slate-700 transition-colors">
+          <Card key={c.id} className="bg-white/5 backdrop-blur-xl border-white/10 hover:border-white/20 transition-all duration-300">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
@@ -377,7 +377,7 @@ function AnnouncementsTab({ announcements }: { announcements: Announcement[] }) 
   return (
     <div className="space-y-4">
       {announcements.length === 0 ? (
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardContent className="py-12 text-center">
             <Megaphone className="w-10 h-10 text-slate-600 mx-auto mb-3" />
             <p className="text-slate-400">No announcements yet</p>
@@ -385,7 +385,7 @@ function AnnouncementsTab({ announcements }: { announcements: Announcement[] }) 
         </Card>
       ) : (
         announcements.map(a => (
-          <Card key={a.id} className={`bg-slate-900 border-slate-800 ${a.pinned ? 'border-cyan-500/30' : ''}`}>
+          <Card key={a.id} className={`bg-white/5 backdrop-blur-xl border-white/10 ${a.pinned ? 'border-cyan-500/30' : ''}`}>
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
@@ -408,7 +408,7 @@ function TeamTab({ team }: { team: TeamMember[] }) {
   return (
     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
       {team.length === 0 ? (
-        <Card className="bg-slate-900 border-slate-800 md:col-span-2 lg:col-span-3">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10 md:col-span-2 lg:col-span-3">
           <CardContent className="py-12 text-center">
             <Users className="w-10 h-10 text-slate-600 mx-auto mb-3" />
             <p className="text-slate-400">No team members yet</p>
@@ -416,7 +416,7 @@ function TeamTab({ team }: { team: TeamMember[] }) {
         </Card>
       ) : (
         team.map(m => (
-          <Card key={m.member_id} className="bg-slate-900 border-slate-800 hover:border-slate-700 transition-colors">
+          <Card key={m.member_id} className="bg-white/5 backdrop-blur-xl border-white/10 hover:border-white/20 transition-all duration-300">
             <CardContent className="p-5">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold text-sm shrink-0">
@@ -452,7 +452,7 @@ function SkillsTab() {
   return (
     <div className="space-y-6">
       {Object.entries(grouped).map(([cat, items]) => (
-        <Card key={cat} className="bg-slate-900 border-slate-800">
+        <Card key={cat} className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardHeader className="pb-3">
             <CardTitle className="text-white text-base">{cat || 'Other'}</CardTitle>
           </CardHeader>
@@ -466,7 +466,7 @@ function SkillsTab() {
         </Card>
       ))}
       {skills.length === 0 && (
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardContent className="py-12 text-center">
             <Wrench className="w-10 h-10 text-slate-600 mx-auto mb-3" />
             <p className="text-slate-400">No skills catalog yet</p>
@@ -490,7 +490,7 @@ function DocumentsTab() {
   return (
     <div className="space-y-4">
       {docs.length === 0 ? (
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardContent className="py-12 text-center">
             <FileText className="w-10 h-10 text-slate-600 mx-auto mb-3" />
             <p className="text-slate-400">No documents available</p>
@@ -498,7 +498,7 @@ function DocumentsTab() {
         </Card>
       ) : (
         docs.map(d => (
-          <Card key={d.id} className="bg-slate-900 border-slate-800">
+          <Card key={d.id} className="bg-white/5 backdrop-blur-xl border-white/10">
             <CardContent className="p-4 flex items-center justify-between">
               <div>
                 <h3 className="text-white text-sm font-medium">{d.title}</h3>
@@ -519,7 +519,7 @@ function DocumentsTab() {
 
 function ContactTab() {
   return (
-    <Card className="bg-slate-900 border-slate-800 max-w-2xl">
+    <Card className="bg-white/5 backdrop-blur-xl border-white/10 max-w-2xl">
       <CardHeader>
         <CardTitle className="text-white">Contact Admin</CardTitle>
       </CardHeader>

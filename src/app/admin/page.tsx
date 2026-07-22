@@ -110,19 +110,19 @@ export default function AdminPage() {
   const openMessages = contacts.filter(c => c.status === 'open').length;
 
   if (loading) return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
       <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 flex">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-200`}>
-        <div className="p-4 border-b border-slate-800 flex items-center gap-3">
-          {sidebarOpen && <span className="text-white font-bold text-lg">Admin</span>}
-          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-slate-400 hover:text-white ml-auto">
-            <ChevronLeft className={`w-4 h-4 transition-transform ${!sidebarOpen ? 'rotate-180' : ''}`} />
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-slate-900/60 backdrop-blur-xl border-r border-white/10 flex flex-col transition-all duration-300`}>
+        <div className="p-4 border-b border-white/5 flex items-center gap-3">
+          {sidebarOpen && <span className="text-white font-bold text-lg tracking-tight">Admin</span>}
+          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-slate-400 hover:text-white ml-auto hover:bg-white/5">
+            <ChevronLeft className={`w-4 h-4 transition-transform duration-300 ${!sidebarOpen ? 'rotate-180' : ''}`} />
           </Button>
         </div>
         <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
@@ -132,11 +132,11 @@ export default function AdminPage() {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === item.id
-                    ? 'bg-cyan-600/20 text-cyan-400'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                }`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                activeTab === item.id
+                  ? 'bg-cyan-500/15 text-cyan-400 shadow-sm shadow-cyan-500/10'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+              }`}
               >
                 <item.icon className="w-5 h-5 shrink-0" />
                 {sidebarOpen && (
@@ -149,20 +149,20 @@ export default function AdminPage() {
             );
           })}
         </nav>
-        <div className="p-2 border-t border-slate-800 space-y-1">
-          <Link href="/dashboard">
-            <Button variant="ghost" className="w-full justify-start text-slate-400 hover:text-white">
-              <Home className="w-5 h-5 shrink-0" />
-              {sidebarOpen && <span className="ml-3">Dashboard</span>}
-            </Button>
-          </Link>
+        <div className="p-2 border-t border-white/5 space-y-1">
           <Link href="/">
-            <Button variant="ghost" className="w-full justify-start text-slate-400 hover:text-white">
+            <Button variant="ghost" className="w-full justify-start text-slate-400 hover:text-white hover:bg-white/5">
               <Home className="w-5 h-5 shrink-0" />
               {sidebarOpen && <span className="ml-3">Home</span>}
             </Button>
           </Link>
-          <Button onClick={handleLogout} variant="ghost" className="w-full justify-start text-slate-400 hover:text-white">
+          <Link href="/dashboard">
+            <Button variant="ghost" className="w-full justify-start text-slate-400 hover:text-white hover:bg-white/5">
+              <User className="w-5 h-5 shrink-0" />
+              {sidebarOpen && <span className="ml-3">Dashboard</span>}
+            </Button>
+          </Link>
+          <Button onClick={handleLogout} variant="ghost" className="w-full justify-start text-slate-400 hover:text-white hover:bg-white/5">
             <LogOut className="w-5 h-5 shrink-0" />
             {sidebarOpen && <span className="ml-3">Logout</span>}
           </Button>
@@ -171,9 +171,9 @@ export default function AdminPage() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
-        <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm px-6 py-4 flex items-center justify-between">
+        <header className="border-b border-white/5 bg-slate-900/40 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-white capitalize">{activeTab === 'overview' ? 'Admin Panel' : activeTab.replace(/_/g, ' ')}</h1>
+            <h1 className="text-xl font-bold text-white capitalize tracking-tight">{activeTab === 'overview' ? 'Admin Panel' : activeTab.replace(/_/g, ' ')}</h1>
           </div>
           <div className="flex items-center gap-3">
             {activeTab === 'users' && (
@@ -183,11 +183,11 @@ export default function AdminPage() {
                   placeholder="Search users..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 bg-slate-800 border-slate-700 text-white w-64"
+                  className="pl-9 bg-white/5 border-white/10 text-white w-64"
                 />
               </div>
             )}
-            <div className="w-9 h-9 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold text-sm">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-cyan-500/20">
               <Shield className="w-4 h-4" />
             </div>
           </div>
@@ -218,7 +218,7 @@ function AdminOverview({ users, attendance, pendingSignups, openMessages, member
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <p className="text-xs text-slate-400">Total Users</p>
@@ -227,7 +227,7 @@ function AdminOverview({ users, attendance, pendingSignups, openMessages, member
             <p className="text-2xl font-bold text-white mt-1">{users.length}</p>
           </CardContent>
         </Card>
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <p className="text-xs text-slate-400">Pending Signups</p>
@@ -236,7 +236,7 @@ function AdminOverview({ users, attendance, pendingSignups, openMessages, member
             <p className="text-2xl font-bold text-white mt-1">{pendingSignups}</p>
           </CardContent>
         </Card>
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <p className="text-xs text-slate-400">Today&apos;s Attendance</p>
@@ -245,7 +245,7 @@ function AdminOverview({ users, attendance, pendingSignups, openMessages, member
             <p className="text-2xl font-bold text-white mt-1">{attendance.length}</p>
           </CardContent>
         </Card>
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <p className="text-xs text-slate-400">Open Messages</p>
@@ -257,7 +257,7 @@ function AdminOverview({ users, attendance, pendingSignups, openMessages, member
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardHeader className="pb-3">
             <CardTitle className="text-white text-base">Recent Users</CardTitle>
           </CardHeader>
@@ -266,7 +266,7 @@ function AdminOverview({ users, attendance, pendingSignups, openMessages, member
               {users.slice(0, 5).map(u => (
                 <div key={u.id} className="flex items-center justify-between p-2 bg-slate-800 rounded-lg">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 text-xs font-bold">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-md shadow-cyan-500/20">
                       {u.full_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                     </div>
                     <div>
@@ -281,7 +281,7 @@ function AdminOverview({ users, attendance, pendingSignups, openMessages, member
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardHeader className="pb-3">
             <CardTitle className="text-white text-base">Invite Codes</CardTitle>
           </CardHeader>
@@ -329,11 +329,11 @@ function AdminSignups({ requests, onRefresh }: { requests: SignupRequest[]; onRe
       <div>
         <h3 className="text-white font-medium mb-3">Pending ({pending.length})</h3>
         {pending.length === 0 ? (
-          <Card className="bg-slate-900 border-slate-800"><CardContent className="py-8 text-center text-slate-500">No pending requests</CardContent></Card>
+          <Card className="bg-white/5 backdrop-blur-xl border-white/10"><CardContent className="py-8 text-center text-slate-500">No pending requests</CardContent></Card>
         ) : (
           <div className="space-y-3">
             {pending.map(r => (
-              <Card key={r.id} className="bg-slate-900 border-slate-800">
+              <Card key={r.id} className="bg-white/5 backdrop-blur-xl border-white/10">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div>
                     <p className="text-white font-medium">{r.full_name}</p>
@@ -378,7 +378,7 @@ function AdminUsers({ users, search }: { users: Profile[]; search: string }) {
   );
 
   return (
-    <Card className="bg-slate-900 border-slate-800">
+    <Card className="bg-white/5 backdrop-blur-xl border-white/10">
       <CardContent className="p-0">
         <Table>
           <TableHeader>
@@ -395,7 +395,7 @@ function AdminUsers({ users, search }: { users: Profile[]; search: string }) {
               <TableRow key={u.id}>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 text-xs font-bold">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-md shadow-cyan-500/20">
                       {u.full_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                     </div>
                     <div>
@@ -419,7 +419,7 @@ function AdminUsers({ users, search }: { users: Profile[]; search: string }) {
 
 function AdminAttendance({ attendance }: { attendance: Attendance[] }) {
   return (
-    <Card className="bg-slate-900 border-slate-800">
+    <Card className="bg-white/5 backdrop-blur-xl border-white/10">
       <CardContent className="p-0">
         <Table>
           <TableHeader>
@@ -485,7 +485,7 @@ function AdminCodes({ memberIds }: { memberIds: MemberId[] }) {
           </div>
         )}
       </div>
-      <Card className="bg-slate-900 border-slate-800">
+      <Card className="bg-white/5 backdrop-blur-xl border-white/10">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -518,14 +518,14 @@ function AdminMessages({ contacts }: { contacts: ContactRequest[] }) {
   return (
     <div className="space-y-4">
       {contacts.length === 0 ? (
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardContent className="py-12 text-center">
             <Mail className="w-10 h-10 text-slate-600 mx-auto mb-3" />
             <p className="text-slate-400">No messages</p>
           </CardContent>
         </Card>
       ) : contacts.map(c => (
-        <Card key={c.id} className="bg-slate-900 border-slate-800">
+        <Card key={c.id} className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div>
@@ -548,14 +548,14 @@ function AdminEvents({ events }: { events: Event[] }) {
   return (
     <div className="space-y-4">
       {events.length === 0 ? (
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardContent className="py-12 text-center">
             <Calendar className="w-10 h-10 text-slate-600 mx-auto mb-3" />
             <p className="text-slate-400">No events</p>
           </CardContent>
         </Card>
       ) : events.map(e => (
-        <Card key={e.id} className="bg-slate-900 border-slate-800">
+        <Card key={e.id} className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <h3 className="text-white font-medium">{e.title}</h3>
@@ -573,14 +573,14 @@ function AdminCompetitions({ competitions }: { competitions: Competition[] }) {
   return (
     <div className="space-y-4">
       {competitions.length === 0 ? (
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardContent className="py-12 text-center">
             <Trophy className="w-10 h-10 text-slate-600 mx-auto mb-3" />
             <p className="text-slate-400">No competitions</p>
           </CardContent>
         </Card>
       ) : competitions.map(c => (
-        <Card key={c.id} className="bg-slate-900 border-slate-800">
+        <Card key={c.id} className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <h3 className="text-white font-medium">{c.name}</h3>
@@ -598,14 +598,14 @@ function AdminAnnouncements({ announcements }: { announcements: Announcement[] }
   return (
     <div className="space-y-4">
       {announcements.length === 0 ? (
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardContent className="py-12 text-center">
             <Megaphone className="w-10 h-10 text-slate-600 mx-auto mb-3" />
             <p className="text-slate-400">No announcements</p>
           </CardContent>
         </Card>
       ) : announcements.map(a => (
-        <Card key={a.id} className={`bg-slate-900 border-slate-800 ${a.pinned ? 'border-cyan-500/30' : ''}`}>
+        <Card key={a.id} className={`bg-white/5 backdrop-blur-xl border-white/10 ${a.pinned ? 'border-cyan-500/30' : ''}`}>
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div>
@@ -625,7 +625,7 @@ function AdminAnnouncements({ announcements }: { announcements: Announcement[] }
 
 function AdminDocuments({ documents }: { documents: Document[] }) {
   return (
-    <Card className="bg-slate-900 border-slate-800">
+    <Card className="bg-white/5 backdrop-blur-xl border-white/10">
       <CardContent className="p-0">
         <Table>
           <TableHeader>
@@ -659,7 +659,7 @@ function AdminSkills({ skills }: { skills: Skill[] }) {
   return (
     <div className="space-y-6">
       {Object.entries(grouped).map(([cat, items]) => (
-        <Card key={cat} className="bg-slate-900 border-slate-800">
+        <Card key={cat} className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardHeader className="pb-3">
             <CardTitle className="text-white text-base">{cat || 'Other'}</CardTitle>
           </CardHeader>
@@ -671,7 +671,7 @@ function AdminSkills({ skills }: { skills: Skill[] }) {
         </Card>
       ))}
       {skills.length === 0 && (
-        <Card className="bg-slate-900 border-slate-800">
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
           <CardContent className="py-12 text-center">
             <Wrench className="w-10 h-10 text-slate-600 mx-auto mb-3" />
             <p className="text-slate-400">No skills in catalog</p>
@@ -693,7 +693,7 @@ function AdminLogs() {
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 text-cyan-400 animate-spin" /></div>;
 
   return (
-    <Card className="bg-slate-900 border-slate-800">
+    <Card className="bg-white/5 backdrop-blur-xl border-white/10">
       <CardContent className="p-0">
         <Table>
           <TableHeader>

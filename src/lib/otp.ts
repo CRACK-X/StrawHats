@@ -8,11 +8,18 @@ const OTP_EXPIRY_MINUTES = 10;
 const OTP_MAX_ATTEMPTS = 5;
 const OTP_RATE_LIMIT_WINDOW = 60_000; // 1 OTP per 60 seconds per account
 
+export interface OtpResult {
+  success: boolean;
+  error?: string;
+  cooldownSeconds?: number;
+  devOtpCode?: string;
+}
+
 export async function issueOtp(
   userId: string,
   email: string,
   request: Request
-): Promise<{ success: boolean; error?: string; cooldownSeconds?: number }> {
+): Promise<OtpResult> {
   const admin = createAdminClient();
   const ip = getClientIp(request);
   const ua = getUserAgent(request);
@@ -54,24 +61,21 @@ export async function issueOtp(
     return { success: false, error: 'Failed to generate verification code' };
   }
 
-  // Send email
+  // Send email — now with delivery status
   const { html, text } = otpEmailHtml(code);
-  const emailSent = await sendEmail({
+  const emailResult = await sendEmail({
     to: email,
     subject: 'Your Straw Hats Robotics Verification Code',
     html,
     text,
   });
 
-  if (!emailSent) {
-    return { success: false, error: 'Failed to send verification email' };
-  }
-
-  // Dev safety net: always log the code so dev workflow works even if email fails silently
+  // Always log OTP in dev mode as a safety net
   if (process.env.NODE_ENV !== 'production') {
     console.log('='.repeat(60));
     console.log(`[DEV OTP] Email: ${email}`);
     console.log(`[DEV OTP] Code: ${code}`);
+    console.log(`[DEV OTP] Delivery: ${emailResult.method} (${emailResult.delivered ? 'delivered' : 'NOT delivered'})`);
     console.log('='.repeat(60));
   }
 
@@ -80,7 +84,13 @@ export async function issueOtp(
     target_user_id: userId,
     ip_address: ip,
     user_agent: ua,
+    metadata: { email_method: emailResult.method, delivered: emailResult.delivered },
   });
+
+  // If email wasn't actually delivered and we're in dev, return the code for UI display
+  if (!emailResult.delivered && process.env.NODE_ENV !== 'production') {
+    return { success: true, devOtpCode: code };
+  }
 
   return { success: true };
 }

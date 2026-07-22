@@ -2,10 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Anchor, Loader2, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 
 interface TeamRole {
@@ -45,9 +46,12 @@ export default function SignupPage() {
   const [inviteCode, setInviteCode] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState('');
   const [roleName, setRoleName] = useState('');
   const [roles, setRoles] = useState<TeamRole[]>([]);
+
+  useEffect(() => { document.title = 'Sign Up | Straw Hats Robotics'; }, []);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -100,11 +104,12 @@ export default function SignupPage() {
       }
 
       if (data.step === 'otp_required') {
-        router.push(`/otp-verify?email=${encodeURIComponent(email.trim())}`);
+        const params = new URLSearchParams({ email: email.trim() });
+        if (data.devOtpCode) params.set('devCode', data.devOtpCode);
+        router.push(`/otp-verify?${params.toString()}`);
         return;
       }
 
-      // Fallback
       setError('Something went wrong. Please try again.');
       setLoading(false);
     } catch {
@@ -114,24 +119,43 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <Card className="w-full max-w-md bg-slate-800/50 border-slate-700">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-white">Request to Join</CardTitle>
-          <CardDescription className="text-slate-400">
-            Join Straw Hats Robotics — you&apos;ll need an invite code from an admin
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 px-4 py-8">
+      {/* Background decoration */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-[120px]" />
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md relative"
+      >
+        <div className="p-8 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl">
+          <div className="text-center mb-8">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-cyan-500/20">
+              <Anchor className="w-6 h-6 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-white">Request to Join</h1>
+            <p className="text-slate-400 mt-2">
+              Join Straw Hats Robotics — you&apos;ll need an invite code from an admin
+            </p>
+          </div>
+
           <form onSubmit={handleSignup} className="space-y-4">
             {error && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm"
+              >
                 {error}
-              </div>
+              </motion.div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="inviteCode" className="text-slate-300">Invite Code</Label>
+              <Label htmlFor="inviteCode" className="text-slate-300 text-sm font-medium">Invite Code</Label>
               <Input
                 id="inviteCode"
                 type="text"
@@ -139,13 +163,13 @@ export default function SignupPage() {
                 onChange={(e) => setInviteCode(e.target.value)}
                 placeholder="e.g. SH-2026-001"
                 required
-                className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                className="h-11 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:ring-cyan-500/20 rounded-xl transition-all"
               />
               <p className="text-xs text-slate-500">Ask a team admin for your invite code</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="fullName" className="text-slate-300">Full Name</Label>
+              <Label htmlFor="fullName" className="text-slate-300 text-sm font-medium">Full Name</Label>
               <Input
                 id="fullName"
                 type="text"
@@ -153,12 +177,12 @@ export default function SignupPage() {
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="John Doe"
                 required
-                className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                className="h-11 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:ring-cyan-500/20 rounded-xl transition-all"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-slate-300">Email</Label>
+              <Label htmlFor="email" className="text-slate-300 text-sm font-medium">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -166,26 +190,35 @@ export default function SignupPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
-                className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                className="h-11 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:ring-cyan-500/20 rounded-xl transition-all"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-slate-300">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 8 characters"
-                required
-                minLength={8}
-                className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
-              />
+              <Label htmlFor="password" className="text-slate-300 text-sm font-medium">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="At least 8 characters"
+                  required
+                  minLength={8}
+                  className="h-11 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:ring-cyan-500/20 rounded-xl transition-all pr-11"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-slate-300">Confirm Password</Label>
+              <Label htmlFor="confirmPassword" className="text-slate-300 text-sm font-medium">Confirm Password</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -194,18 +227,18 @@ export default function SignupPage() {
                 placeholder="Re-enter your password"
                 required
                 minLength={8}
-                className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                className="h-11 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500/50 focus:ring-cyan-500/20 rounded-xl transition-all"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="roleName" className="text-slate-300">Team Role</Label>
+              <Label htmlFor="roleName" className="text-slate-300 text-sm font-medium">Team Role</Label>
               <select
                 id="roleName"
                 value={roleName}
                 onChange={(e) => setRoleName(e.target.value)}
                 style={{ colorScheme: 'dark' }}
-                className="w-full p-2.5 bg-slate-700/50 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                className="w-full h-11 px-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
               >
                 <option value="" disabled>Select your role...</option>
                 {roles.map(role => (
@@ -219,21 +252,22 @@ export default function SignupPage() {
 
             <Button
               type="submit"
-              className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
+              className="w-full h-11 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white shadow-lg shadow-cyan-500/25 rounded-xl font-medium transition-all duration-300"
               disabled={loading}
             >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               {loading ? 'Creating Account...' : 'Sign Up'}
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-slate-400">
+          <div className="mt-6 pt-6 border-t border-white/5 text-center text-sm text-slate-400">
             Already have an account?{' '}
-            <Link href="/login" className="text-cyan-400 hover:text-cyan-300">
+            <Link href="/login" className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors">
               Sign in
             </Link>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </motion.div>
     </div>
   );
 }

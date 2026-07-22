@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const PUBLIC_PATHS = ['/login', '/signup', '/otp-verify', '/forgot-password', '/reset-password', '/waiting-approval', '/privacy', '/terms', '/about', '/events', '/competitions', '/team', '/announcements', '/'];
+const PUBLIC_PATHS = ['/login', '/signup', '/otp-verify', '/forgot-password', '/reset-password', '/waiting-approval', '/privacy', '/terms', '/about', '/events', '/competitions', '/team', '/announcements', '/sitemap.xml', '/robots.txt', '/favicon.svg', '/favicon.ico', '/site.webmanifest', '/'];
 const AUTH_PAGES = ['/login', '/signup'];
 
 function isPublic(pathname: string) {

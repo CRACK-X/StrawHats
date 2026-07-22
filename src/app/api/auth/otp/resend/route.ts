@@ -50,5 +50,10 @@ export async function POST(request: Request) {
     user_agent: ua,
   });
 
-  return NextResponse.json({ success: true });
+  const responseBody: Record<string, unknown> = { success: true };
+  if (result.devOtpCode) {
+    responseBody.devOtpCode = result.devOtpCode;
+  }
+
+  return NextResponse.json(responseBody);
 }

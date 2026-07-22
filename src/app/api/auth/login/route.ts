@@ -91,7 +91,12 @@ export async function POST(request: Request) {
     email,
   });
 
-  const response = NextResponse.json({ step: 'otp_required', email });
+  const responseBody: Record<string, unknown> = { step: 'otp_required', email };
+  if (otpResult.devOtpCode) {
+    responseBody.devOtpCode = otpResult.devOtpCode;
+  }
+
+  const response = NextResponse.json(responseBody);
 
   // Set a temporary cookie with the session tokens (10 min expiry)
   response.cookies.set('otp_pending_session', payload, {

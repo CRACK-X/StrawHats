@@ -121,7 +121,12 @@ export async function POST(req: NextRequest) {
     purpose: 'signup',
   });
 
-  const response = NextResponse.json({ step: 'otp_required', email });
+  const responseBody: Record<string, unknown> = { step: 'otp_required', email };
+  if (otpResult.devOtpCode) {
+    responseBody.devOtpCode = otpResult.devOtpCode;
+  }
+
+  const response = NextResponse.json(responseBody);
 
   response.cookies.set('otp_pending_session', payload, {
     httpOnly: true,

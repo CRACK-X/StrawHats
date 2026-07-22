@@ -1,8 +1,15 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bot, Target, History, Users } from 'lucide-react';
+import { Anchor, Target, History, Users } from 'lucide-react';
 import Footer from '@/components/Footer';
+
+export const metadata: Metadata = {
+  title: 'About',
+  description:
+    'Learn about Straw Hats Robotics — our mission, values, and journey building underwater ROVs for competitions like MATE ROV.',
+};
 
 const teamMembers = [
   { name: 'Team Member 1', role: 'Team Lead', image: '/team/member1.jpg' },
@@ -13,19 +20,20 @@ const teamMembers = [
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <nav className="border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm sticky top-0 z-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      {/* Nav */}
+      <nav className="border-b border-white/5 bg-slate-900/60 backdrop-blur-xl sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">
-            <Bot className="w-8 h-8 text-cyan-400" />
+            <Anchor className="w-8 h-8 text-cyan-400" />
             <span className="text-xl font-bold text-white">Straw Hats Robotics</span>
           </Link>
           <div className="flex gap-4">
             <Link href="/login">
-              <Button variant="ghost">Login</Button>
+              <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-white/5">Login</Button>
             </Link>
             <Link href="/signup">
-              <Button className="bg-cyan-600 hover:bg-cyan-700 text-white">
+              <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white shadow-lg shadow-cyan-500/25">
                 Join Team
               </Button>
             </Link>
@@ -37,9 +45,9 @@ export default function AboutPage() {
       <section className="container mx-auto px-4 py-16 md:py-24">
         <div className="max-w-3xl mx-auto text-center space-y-6">
           <h1 className="text-4xl md:text-5xl font-bold text-white">
-            About <span className="text-cyan-400">Straw Hats Robotics</span>
+            About <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Straw Hats Robotics</span>
           </h1>
-          <p className="text-lg text-slate-400">
+          <p className="text-lg text-slate-400 leading-relaxed">
             Straw Hats Robotics is a student robotics team competing in ROV and
             underwater robotics competitions — including MATE ROV — designing,
             building, and piloting remotely operated underwater vehicles (ROVs) to
@@ -53,13 +61,13 @@ export default function AboutPage() {
       {/* Mission */}
       <section className="container mx-auto px-4 py-16">
         <div className="grid md:grid-cols-2 gap-8">
-          <Card className="bg-slate-800/50 border-slate-700 h-full">
+          <Card className="glass-card h-full">
             <CardHeader>
               <Target className="w-10 h-10 text-cyan-400 mb-2" />
               <CardTitle className="text-white">Our Mission</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-slate-400">
+              <p className="text-slate-400 leading-relaxed">
                 To inspire and educate the next generation of engineers,
                 scientists, and innovators through hands-on experience in
                 underwater robotics. We believe in learning by doing,
@@ -69,33 +77,25 @@ export default function AboutPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/50 border-slate-700 h-full">
+          <Card className="glass-card h-full">
             <CardHeader>
               <Target className="w-10 h-10 text-cyan-400 mb-2" />
               <CardTitle className="text-white">What We Stand For</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-cyan-400 rounded-full mt-2" />
-                <div>
-                  <h4 className="text-white font-medium">Innovation</h4>
-                  <p className="text-sm text-slate-400">Pushing boundaries with creative solutions</p>
+              {[
+                { title: 'Innovation', desc: 'Pushing boundaries with creative solutions' },
+                { title: 'Collaboration', desc: 'Working together across disciplines' },
+                { title: 'Excellence', desc: 'Striving for the highest quality in everything we do' },
+              ].map((value) => (
+                <div key={value.title} className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-cyan-400 rounded-full mt-2 shadow-sm shadow-cyan-400/50" />
+                  <div>
+                    <h4 className="text-white font-medium">{value.title}</h4>
+                    <p className="text-sm text-slate-400">{value.desc}</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-cyan-400 rounded-full mt-2" />
-                <div>
-                  <h4 className="text-white font-medium">Collaboration</h4>
-                  <p className="text-sm text-slate-400">Working together across disciplines</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-cyan-400 rounded-full mt-2" />
-                <div>
-                  <h4 className="text-white font-medium">Excellence</h4>
-                  <p className="text-sm text-slate-400">Striving for the highest quality in everything we do</p>
-                </div>
-              </div>
+              ))}
             </CardContent>
           </Card>
         </div>
@@ -124,16 +124,16 @@ export default function AboutPage() {
           ].map((entry) => (
             <div key={entry.year} className="flex gap-6">
               <div className="flex flex-col items-center">
-                <div className="w-12 h-12 bg-cyan-600 rounded-full flex items-center justify-center">
+                <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-cyan-500/20">
                   <History className="w-6 h-6 text-white" />
                 </div>
-                <div className="w-0.5 flex-1 bg-slate-700" />
+                <div className="w-0.5 flex-1 bg-gradient-to-b from-cyan-500/50 to-transparent" />
               </div>
               <div className="pb-8">
                 <h3 className="text-xl font-bold text-white">
-                  {entry.year} - {entry.title}
+                  {entry.year} — {entry.title}
                 </h3>
-                <p className="text-slate-400 mt-2">{entry.desc}</p>
+                <p className="text-slate-400 mt-2 leading-relaxed">{entry.desc}</p>
               </div>
             </div>
           ))}
@@ -147,10 +147,10 @@ export default function AboutPage() {
           {teamMembers.map((member) => (
             <Card
               key={member.role}
-              className="bg-slate-800/50 border-slate-700 hover:border-cyan-700/50 transition-colors text-center"
+              className="glass-card hover:border-cyan-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/5 text-center"
             >
               <CardHeader>
-                <div className="w-24 h-24 bg-slate-700 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <div className="w-24 h-24 bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl mx-auto mb-4 flex items-center justify-center border border-white/10">
                   <Users className="w-12 h-12 text-slate-500" />
                 </div>
                 <CardTitle className="text-white">{member.name}</CardTitle>
@@ -165,16 +165,16 @@ export default function AboutPage() {
 
       {/* CTA */}
       <section className="container mx-auto px-4 py-16">
-        <Card className="bg-cyan-600/20 border-cyan-600/30">
+        <Card className="glass-card border-cyan-500/20">
           <CardContent className="py-12 text-center space-y-6">
             <h2 className="text-3xl font-bold text-white">Ready to Dive In?</h2>
-            <p className="text-slate-300 max-w-2xl mx-auto">
+            <p className="text-slate-300 max-w-2xl mx-auto leading-relaxed">
               Join Straw Hats Robotics and be part of an exciting journey building
               underwater robots. No prior experience needed — just enthusiasm and a
               willingness to learn!
             </p>
             <Link href="/signup">
-              <Button size="lg" className="bg-cyan-600 hover:bg-cyan-700 text-white">
+              <Button size="lg" className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white shadow-lg shadow-cyan-500/25 px-8">
                 Apply to Join
               </Button>
             </Link>

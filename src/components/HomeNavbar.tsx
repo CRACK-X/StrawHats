@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Bot, LogOut, LayoutDashboard, Shield } from 'lucide-react';
+import { Anchor, LogOut, LayoutDashboard, Shield } from 'lucide-react';
 import { createSupabaseClient } from '@/lib/supabase/client';
 
 export default function HomeNavbar() {
@@ -38,47 +39,56 @@ export default function HomeNavbar() {
   };
 
   return (
-    <nav className="border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm sticky top-0 z-50">
+    <motion.nav
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="border-b border-white/10 bg-slate-900/60 backdrop-blur-xl sticky top-0 z-50"
+    >
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <Bot className="w-8 h-8 text-cyan-400" />
-          <span className="text-xl font-bold text-white">Straw Hats Robotics</span>
-        </div>
-        <div className="flex gap-4 items-center">
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/40 transition-shadow duration-300">
+            <Anchor className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-xl font-bold text-white tracking-tight">Straw Hats Robotics</span>
+        </Link>
+        <div className="flex gap-3 items-center">
           {loading ? (
-            <div className="w-20 h-9 bg-slate-700 animate-pulse rounded" />
+            <div className="w-20 h-9 bg-white/5 animate-pulse rounded-xl" />
           ) : role ? (
             <>
               <Link href="/dashboard">
-                <Button variant="ghost" className="text-slate-300 hover:text-white">
+                <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-white/5">
                   <LayoutDashboard className="w-4 h-4 mr-2" />
                   Dashboard
                 </Button>
               </Link>
               {role === 'admin' && (
                 <Link href="/admin">
-                  <Button variant="ghost" className="text-cyan-400 hover:text-cyan-300">
+                  <Button variant="ghost" className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10">
                     <Shield className="w-4 h-4 mr-2" />
                     Admin
                   </Button>
                 </Link>
               )}
-              <Button onClick={handleLogout} variant="ghost" className="text-slate-400 hover:text-white">
+              <Button onClick={handleLogout} variant="ghost" className="text-slate-400 hover:text-white hover:bg-white/5">
                 <LogOut className="w-4 h-4" />
               </Button>
             </>
           ) : (
             <>
               <Link href="/login">
-                <Button variant="ghost">Login</Button>
+                <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-white/5">Login</Button>
               </Link>
               <Link href="/signup">
-                <Button className="bg-cyan-600 hover:bg-cyan-700 text-white">Join Team</Button>
+                <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white shadow-lg shadow-cyan-500/20">
+                  Join Team
+                </Button>
               </Link>
             </>
           )}
         </div>
       </div>
-    </nav>
+    </motion.nav>
   );
 }

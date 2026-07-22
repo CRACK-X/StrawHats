@@ -1,182 +1,136 @@
 'use client';
 
-import { useRef, useState, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Float, ContactShadows } from '@react-three/drei';
+import { useRef, useState, useCallback, useEffect } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls, Float, ContactShadows, Environment } from '@react-three/drei';
+import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 
-function Robot() {
+function RoverModel({ mouse }: { mouse: THREE.Vector2 }) {
   const groupRef = useRef<THREE.Group>(null);
-  const [hovered, setHovered] = useState(false);
+  const headRef = useRef<THREE.Group>(null);
+  const { scene } = useGLTF('/models/rov.glb');
 
-  useFrame((state) => {
+  const targetRotY = useRef(0);
+  const targetRotX = useRef(0);
+  const currentRotY = useRef(0);
+  const currentRotX = useRef(0);
+
+  useEffect(() => {
+    scene.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+        if (child.material) {
+          const mat = child.material as THREE.MeshStandardMaterial;
+          if (mat.metalness !== undefined) {
+            mat.metalness = Math.min(mat.metalness + 0.1, 1);
+            mat.roughness = Math.max(mat.roughness - 0.05, 0);
+          }
+        }
+      }
+    });
+  }, [scene]);
+
+  useFrame(() => {
+    targetRotY.current = mouse.x * 0.3;
+    targetRotX.current = -mouse.y * 0.15;
+
+    currentRotY.current = THREE.MathUtils.lerp(currentRotY.current, targetRotY.current, 0.05);
+    currentRotX.current = THREE.MathUtils.lerp(currentRotX.current, targetRotX.current, 0.05);
+
     if (groupRef.current) {
-      groupRef.current.rotation.y = state.clock.elapsedTime * 0.15;
+      groupRef.current.rotation.y = currentRotY.current;
+      groupRef.current.rotation.x = currentRotX.current;
     }
   });
 
-  const bodyColor = useMemo(() => (hovered ? '#22d3ee' : '#0891b2'), [hovered]);
-
   return (
     <group ref={groupRef}>
-      {/* Main hull - rounded box shape */}
-      <mesh
-        position={[0, 0, 0]}
-        onPointerOver={() => setHovered(true)}
-        onPointerOut={() => setHovered(false)}
-        castShadow
-      >
-        <boxGeometry args={[2.2, 1.2, 1.6]} />
-        <meshStandardMaterial
-          color={bodyColor}
-          metalness={0.7}
-          roughness={0.25}
-        />
-      </mesh>
-
-      {/* Top dome / viewport */}
-      <mesh position={[0, 0.85, 0]} castShadow>
-        <sphereGeometry args={[0.5, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshStandardMaterial
-          color="#164e63"
-          metalness={0.85}
-          roughness={0.15}
-          transparent
-          opacity={0.9}
-        />
-      </mesh>
-
-      {/* Front face plate */}
-      <mesh position={[0, 0, 0.81]}>
-        <boxGeometry args={[1.8, 0.9, 0.02]} />
-        <meshStandardMaterial color="#155e75" metalness={0.6} roughness={0.3} />
-      </mesh>
-
-      {/* Camera housing */}
-      <mesh position={[0.5, 0.15, 0.9]} castShadow>
-        <cylinderGeometry args={[0.18, 0.22, 0.35, 16]} />
-        <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.2} />
-      </mesh>
-
-      {/* Camera lens */}
-      <mesh position={[0.5, 0.15, 1.1]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.12, 0.14, 0.15, 16]} />
-        <meshStandardMaterial
-          color="#1e293b"
-          metalness={0.95}
-          roughness={0.05}
-        />
-      </mesh>
-
-      {/* Left manipulator arm */}
-      <group position={[-1.3, -0.1, 0.2]}>
-        <mesh castShadow>
-          <boxGeometry args={[0.2, 0.2, 1.0]} />
-          <meshStandardMaterial color="#0e7490" metalness={0.75} roughness={0.25} />
-        </mesh>
-        <mesh position={[0, 0, 0.6]}>
-          <boxGeometry args={[0.15, 0.15, 0.3]} />
-          <meshStandardMaterial color="#155e75" metalness={0.7} roughness={0.3} />
-        </mesh>
-      </group>
-
-      {/* Right manipulator arm */}
-      <group position={[1.3, -0.1, 0.2]}>
-        <mesh castShadow>
-          <boxGeometry args={[0.2, 0.2, 1.0]} />
-          <meshStandardMaterial color="#0e7490" metalness={0.75} roughness={0.25} />
-        </mesh>
-        <mesh position={[0, 0, 0.6]}>
-          <boxGeometry args={[0.15, 0.15, 0.3]} />
-          <meshStandardMaterial color="#155e75" metalness={0.7} roughness={0.3} />
-        </mesh>
-      </group>
-
-      {/* Left side thruster */}
-      <mesh position={[-1.1, -0.5, -0.3]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-        <cylinderGeometry args={[0.22, 0.18, 0.5, 16]} />
-        <meshStandardMaterial color="#1e293b" metalness={0.7} roughness={0.3} />
-      </mesh>
-
-      {/* Right side thruster */}
-      <mesh position={[1.1, -0.5, -0.3]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-        <cylinderGeometry args={[0.22, 0.18, 0.5, 16]} />
-        <meshStandardMaterial color="#1e293b" metalness={0.7} roughness={0.3} />
-      </mesh>
-
-      {/* Rear vertical thruster */}
-      <mesh position={[0, -0.6, -0.5]} castShadow>
-        <cylinderGeometry args={[0.18, 0.15, 0.35, 16]} />
-        <meshStandardMaterial color="#1e293b" metalness={0.7} roughness={0.3} />
-      </mesh>
-
-      {/* Top lights bar */}
-      <mesh position={[0, 0.55, 0.75]}>
-        <boxGeometry args={[1.2, 0.08, 0.08]} />
-        <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.2} />
-      </mesh>
-
-      {/* Headlights */}
-      {[-0.4, 0.4].map((x) => (
-        <mesh key={x} position={[x, 0.55, 0.82]}>
-          <sphereGeometry args={[0.06, 12, 12]} />
-          <meshStandardMaterial
-            color="#fbbf24"
-            emissive="#fbbf24"
-            emissiveIntensity={hovered ? 1.2 : 0.6}
-          />
-        </mesh>
-      ))}
-
-      {/* Bottom frame rails */}
-      {[-0.7, 0.7].map((x) => (
-        <mesh key={x} position={[x, -0.65, 0]}>
-          <boxGeometry args={[0.08, 0.08, 1.8]} />
-          <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.2} />
-        </mesh>
-      ))}
-
-      {/* Side panels */}
-      {[-1.12, 1.12].map((x) => (
-        <mesh key={x} position={[x, 0, 0]}>
-          <boxGeometry args={[0.04, 0.9, 1.4]} />
-          <meshStandardMaterial color="#155e75" metalness={0.6} roughness={0.3} />
-        </mesh>
-      ))}
+      <primitive ref={headRef} object={scene} scale={1.5} />
     </group>
   );
 }
 
-export default function Robot3D() {
+function MouseTracker({ mouse }: { mouse: THREE.Vector2 }) {
+  const { viewport } = useThree();
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [mouse, viewport]);
+
+  return null;
+}
+
+function LoadingFallback() {
   return (
-    <div className="w-full h-[400px] md:h-[500px]">
+    <div className="w-full h-[400px] md:h-[500px] bg-slate-800/50 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/5">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
+        <p className="text-slate-400 text-sm">Loading 3D Model...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function Robot3D() {
+  const mouse = useRef(new THREE.Vector2(0, 0));
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return <LoadingFallback />;
+
+  return (
+    <div className="w-full h-[400px] md:h-[500px] relative">
       <Canvas
-        camera={{ position: [3.5, 2.5, 3.5], fov: 45 }}
-        shadows={{ type: THREE.PCFShadowMap }}
-        gl={{ failIfMajorPerformanceCaveat: false }}
+        camera={{ position: [4, 3, 5], fov: 40 }}
+        shadows={{ type: THREE.PCFSoftShadowMap }}
+        gl={{ failIfMajorPerformanceCaveat: false, antialias: true }}
+        dpr={[1, 1.5]}
       >
-        <ambientLight intensity={0.4} />
+        <MouseTracker mouse={mouse.current} />
+
+        <ambientLight intensity={0.3} />
         <directionalLight
           position={[5, 8, 5]}
-          intensity={1.2}
+          intensity={1.5}
           castShadow
           shadow-mapSize-width={1024}
           shadow-mapSize-height={1024}
+          shadow-camera-near={0.5}
+          shadow-camera-far={50}
         />
-        <pointLight position={[-4, 2, -4]} intensity={0.4} color="#67e8f9" />
-        <pointLight position={[2, -2, 4]} intensity={0.3} color="#fbbf24" />
+        <pointLight position={[-5, 3, -5]} intensity={0.5} color="#67e8f9" />
+        <pointLight position={[3, -2, 5]} intensity={0.3} color="#22d3ee" />
+        <spotLight
+          position={[0, 5, 0]}
+          angle={0.5}
+          penumbra={1}
+          intensity={0.4}
+          color="#06b6d4"
+        />
 
-        <Float speed={1.5} rotationIntensity={0.15} floatIntensity={0.4}>
-          <Robot />
+        <Float speed={1.2} rotationIntensity={0.1} floatIntensity={0.3}>
+          <RoverModel mouse={mouse.current} />
         </Float>
 
         <ContactShadows
-          position={[0, -1.2, 0]}
-          opacity={0.4}
-          scale={6}
+          position={[0, -1.5, 0]}
+          opacity={0.5}
+          scale={8}
           blur={2.5}
           far={4}
         />
+
+        <Environment preset="underwater" environmentIntensity={0.4} />
 
         <OrbitControls
           enableZoom={false}
@@ -184,9 +138,16 @@ export default function Robot3D() {
           minPolarAngle={Math.PI / 4}
           maxPolarAngle={Math.PI / 1.8}
           autoRotate
-          autoRotateSpeed={0.5}
+          autoRotateSpeed={0.3}
         />
+
+        <fog attach="fog" args={['#0f172a', 10, 25]} />
       </Canvas>
+
+      {/* Glow effect overlay */}
+      <div className="absolute inset-0 pointer-events-none bg-gradient-radial from-cyan-500/5 via-transparent to-transparent" />
     </div>
   );
 }
+
+useGLTF.preload('/models/rov.glb');
