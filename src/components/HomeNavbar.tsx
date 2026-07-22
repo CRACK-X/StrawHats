@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Anchor, LogOut, LayoutDashboard, Shield } from 'lucide-react';
+import { LogOut, LayoutDashboard, Shield } from 'lucide-react';
 import { createSupabaseClient } from '@/lib/supabase/client';
 
 export default function HomeNavbar() {
@@ -47,9 +47,7 @@ export default function HomeNavbar() {
     >
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/40 transition-shadow duration-300">
-            <Anchor className="w-5 h-5 text-white" />
-          </div>
+          <img src="/New_LOGO.png" alt="Straw Hats Robotics" className="h-9 w-auto" />
           <span className="text-xl font-bold text-white tracking-tight">Straw Hats Robotics</span>
         </Link>
         <div className="flex gap-3 items-center">

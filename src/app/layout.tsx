@@ -86,9 +86,9 @@ export const metadata: Metadata = {
     canonical: siteUrl,
   },
   icons: {
-    icon: '/favicon.svg',
-    shortcut: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
+    icon: '/New_LOGO.png',
+    shortcut: '/New_LOGO.png',
+    apple: '/New_LOGO.png',
   },
   manifest: '/site.webmanifest',
   referrer: 'origin-when-cross-origin',
@@ -105,7 +105,7 @@ export default function RootLayout({
     '@type': 'Organization',
     name: 'Straw Hats Robotics',
     url: siteUrl,
-    logo: `${siteUrl}/logo.png`,
+    logo: `${siteUrl}/New_LOGO.png`,
     description:
       'Student robotics team competing in ROV and underwater robotics competitions, including MATE ROV.',
     sameAs: [],
@@ -142,9 +142,7 @@ export default function RootLayout({
   return (
     <html lang="en" dir="ltr">
       <head>
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="icon" href="/New_LOGO.png" />
         <meta name="application-name" content="Straw Hats Robotics" />
         <meta name="theme-color" content="#020617" />
         <meta name="msapplication-TileColor" content="#020617" />

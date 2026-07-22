@@ -187,9 +187,7 @@ export default function AdminPage() {
                 />
               </div>
             )}
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-cyan-500/20">
-              <Shield className="w-4 h-4" />
-            </div>
+            <img src="/New_LOGO.png" alt="Admin" className="h-9 w-auto" />
           </div>
         </header>
 

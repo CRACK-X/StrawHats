@@ -14,11 +14,19 @@ function isSupabaseConfigured(): boolean {
 }
 
 export async function updateSession(request: NextRequest) {
-  if (!isSupabaseConfigured()) {
+  // Skip middleware for static assets and Next.js internals
+  const { pathname } = request.nextUrl;
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/models') ||
+    pathname.includes('.')
+  ) {
     return NextResponse.next();
   }
 
-  const { pathname } = request.nextUrl;
+  if (!isSupabaseConfigured()) {
+    return NextResponse.next();
+  }
 
   // Fast path: skip Supabase entirely for purely public routes
   // (auth pages still need getUser to redirect logged-in users away)

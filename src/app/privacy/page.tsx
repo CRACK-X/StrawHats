@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { Bot } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import Footer from '@/components/Footer';
 
@@ -15,7 +14,7 @@ export default function PrivacyPage() {
       <nav className="border-b border-slate-700 bg-slate-800/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <Link href="/" className="flex items-center gap-2">
-            <Bot className="w-8 h-8 text-cyan-400" />
+            <img src="/New_LOGO.png" alt="Straw Hats Robotics" className="h-8 w-auto" />
             <span className="text-xl font-bold text-white">Straw Hats Robotics</span>
           </Link>
         </div>

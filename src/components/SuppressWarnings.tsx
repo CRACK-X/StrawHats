@@ -16,8 +16,9 @@ export default function SuppressWarnings() {
     };
 
     console.error = (...args: unknown[]) => {
-      const msg = args[0];
-      if (typeof msg === 'string' && msg.includes('Context Lost')) return;
+      const msg = typeof args[0] === 'string' ? args[0] : '';
+      if (msg.includes('Context Lost')) return;
+      if (msg.includes('GLTFLoader') && msg.includes('texture')) return;
       originalError.apply(console, args);
     };
 

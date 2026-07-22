@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Anchor, Target, History, Users } from 'lucide-react';
+import { Target, History, Users } from 'lucide-react';
 import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
@@ -25,7 +25,7 @@ export default function AboutPage() {
       <nav className="border-b border-white/5 bg-slate-900/60 backdrop-blur-xl sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">
-            <Anchor className="w-8 h-8 text-cyan-400" />
+            <img src="/New_LOGO.png" alt="Straw Hats Robotics" className="h-8 w-auto" />
             <span className="text-xl font-bold text-white">Straw Hats Robotics</span>
           </Link>
           <div className="flex gap-4">

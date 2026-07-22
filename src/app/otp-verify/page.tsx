@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Anchor, Shield, Loader2, Info } from 'lucide-react';
+import { Loader2, Info } from 'lucide-react';
 import Link from 'next/link';
 
 function OtpForm() {
@@ -101,9 +101,7 @@ function OtpForm() {
       >
         <div className="p-8 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl">
           <div className="text-center mb-8">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-cyan-500/20">
-              <Shield className="w-6 h-6 text-white" />
-            </div>
+            <img src="/New_LOGO.png" alt="Straw Hats Robotics" className="h-12 w-auto mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-white">Verify Your Identity</h1>
             <p className="text-slate-400 mt-2">
               Enter the 6-digit code sent to{' '}
