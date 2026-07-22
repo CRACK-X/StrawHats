@@ -86,7 +86,7 @@ export const metadata: Metadata = {
     canonical: siteUrl,
   },
   icons: {
-    icon: '/New_LOGO.png',
+    icon: '/favicon.svg',
     shortcut: '/New_LOGO.png',
     apple: '/New_LOGO.png',
   },
@@ -142,7 +142,7 @@ export default function RootLayout({
   return (
     <html lang="en" dir="ltr">
       <head>
-        <link rel="icon" href="/New_LOGO.png" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <meta name="application-name" content="Straw Hats Robotics" />
         <meta name="theme-color" content="#020617" />
         <meta name="msapplication-TileColor" content="#020617" />

@@ -34,7 +34,7 @@ function StrawHat() {
   const ribbonColor = '#c0392b';
 
   return (
-    <group ref={groupRef} scale={2.2} position={[0, 0.2, 0]}>
+    <group ref={groupRef} scale={1.4} position={[0, -0.3, 0]}>
       {/* Brim - flat wide disc */}
       <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[3.2, 3.2, 0.12, 64]} />
@@ -121,7 +121,7 @@ export default function Robot3D() {
     <div className="w-full h-[400px] md:h-[500px] relative">
       <CanvasErrorBoundary fallback={<LoadingFallback />}>
         <Canvas
-          camera={{ position: [0, 2, 8], fov: 35 }}
+          camera={{ position: [0, 3, 12], fov: 35 }}
           shadows="soft"
           dpr={[1, 1.5]}
         >
