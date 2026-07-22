@@ -1,40 +1,87 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { createSupabaseClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 
+function TurnstileWidget({ onVerify }: { onVerify: (token: string) => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  if (!siteKey || siteKey === 'placeholder') return null;
+
+  return (
+    <div className="flex justify-center">
+      <div ref={containerRef} id="cf-turnstile-login" />
+      <script
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+        async
+        defer
+        onLoad={() => {
+          const w = window as unknown as { turnstile?: { render: (sel: string, opts: Record<string, unknown>) => void } };
+          if (typeof window !== 'undefined' && w.turnstile) {
+            w.turnstile.render('#cf-turnstile-login', {
+              sitekey: siteKey,
+              callback: onVerify,
+            });
+          }
+        }}
+      />
+    </div>
+  );
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const supabase = createSupabaseClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      setError(error.message);
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    if (siteKey && siteKey !== 'placeholder' && !turnstileToken) {
+      setError('Please complete the CAPTCHA verification.');
       setLoading(false);
       return;
     }
 
-    router.push('/dashboard');
-    router.refresh();
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, turnstileToken }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Login failed');
+        setLoading(false);
+        return;
+      }
+
+      if (data.step === 'otp_required') {
+        router.push(`/otp-verify?email=${encodeURIComponent(email)}`);
+        return;
+      }
+
+      // Fallback (shouldn't happen)
+      router.push('/dashboard');
+      router.refresh();
+    } catch {
+      setError('Network error. Please try again.');
+      setLoading(false);
+    }
   };
 
   return (
@@ -53,7 +100,7 @@ export default function LoginPage() {
                 {error}
               </div>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="email" className="text-slate-300">Email</Label>
               <Input
@@ -66,7 +113,7 @@ export default function LoginPage() {
                 className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="password" className="text-slate-300">Password</Label>
               <Input
@@ -79,7 +126,9 @@ export default function LoginPage() {
                 className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
               />
             </div>
-            
+
+            <TurnstileWidget onVerify={setTurnstileToken} />
+
             <Button
               type="submit"
               className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
@@ -88,7 +137,13 @@ export default function LoginPage() {
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
-          
+
+          <div className="mt-4 text-center">
+            <Link href="/forgot-password" className="text-sm text-cyan-400 hover:text-cyan-300">
+              Forgot your password?
+            </Link>
+          </div>
+
           <div className="mt-6 text-center text-sm text-slate-400">
             Don&apos;t have an account?{' '}
             <Link href="/signup" className="text-cyan-400 hover:text-cyan-300">

@@ -1,33 +1,38 @@
 # Straw Hats Robotics Website
 
-A production-grade website for the Straw Hats Robotics team, built with Next.js 14, Supabase, and Cloudflare Pages.
+A production-grade website for the Straw Hats Robotics team — a student robotics team competing in ROV/underwater robotics competitions including MATE ROV.
 
 ## Features
 
-- **Authentication**: Secure email/password authentication with Supabase Auth
-- **QR Code Attendance System**: Generate and scan QR codes for attendance tracking
-- **Admin Panel**: User management, attendance tracking, and audit logging
-- **3D Interactive Robot**: Interactive 3D robot model using React Three Fiber
-- **SEO Optimized**: Full SEO implementation with metadata, sitemap, and robots.txt
-- **Security First**: RLS policies, CSP headers, and secure session management
+- **Two-Phase Authentication**: Password + OTP email verification with admin-approval signup
+- **Admin-Approval Signup Flow**: Users set password, verify email via OTP, wait for admin approval
+- **QR Code Attendance**: Unique HMAC-signed QR tokens per user, admin scanner, idempotent recording
+- **Admin Panel**: 12-tab sidebar — users, signups, attendance, invite codes, messages, events, competitions, announcements, documents, skills, audit logs
+- **Member Dashboard**: 8-tab sidebar — overview, events, competitions, announcements, team, skills, documents, contact
+- **3D Interactive Robot**: React Three Fiber + Drei with GLTF models, Particles, and lighting
+- **Combined API Endpoints**: Single `/api/me` and `/api/admin/dashboard` endpoints reduce HTTP requests from 12+ to 1
+- **Security Hardening**: Rate limiting, CSP headers, RLS bypass via admin client, HMAC-signed QR tokens
+- **Loading Skeletons**: Instant feedback during page compilation
+- **Console Warning Suppression**: THREE.Clock deprecation and WebGL Context Lost filtered in dev
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS, shadcn/ui
-- **3D**: React Three Fiber, Drei
-- **Backend**: Supabase (PostgreSQL, Auth, RLS)
-- **Deployment**: Cloudflare Pages (via OpenNext adapter)
-- **QR Codes**: qrcode.react, html5-qrcode
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 15.5.20 (App Router, Turbopack) |
+| Language | TypeScript |
+| Styling | Tailwind CSS v3 |
+| UI Components | shadcn/ui (custom implementations) |
+| 3D | React Three Fiber v9.6.1, Drei v10.7.7, Three.js v0.185.1 |
+| Database | Supabase (PostgreSQL + Auth + RLS) |
+| Auth | `@supabase/ssr` v0.12.3 (cookie-based) |
+| Email | Resend v6.18.0 |
+| Validation | Zod v4.4.3 |
+| Testing | Vitest v4.1.10 (33 tests) |
+| Deployment | Cloudflare Pages via `@opennextjs/cloudflare` v1.20.1 |
+| QR Codes | `qrcode.react`, `html5-qrcode` |
 
-## Prerequisites
-
-- Node.js 18+ and npm
-- A Supabase project (https://supabase.com)
-- A Cloudflare account (https://cloudflare.com)
-
-## Local Development Setup
-
-### 1. Clone and install dependencies
+## Quick Start
 
 ```bash
 git clone <repository-url>
@@ -35,166 +40,115 @@ cd straw-hats-robotics
 npm install
 ```
 
-### 2. Set up Supabase
-
-1. Create a new Supabase project at https://supabase.com
-2. Go to Project Settings > API and copy:
-   - `SUPABASE_URL` (Project URL)
-   - `SUPABASE_ANON_KEY` (public anon key)
-   - `SUPABASE_SERVICE_ROLE_KEY` (service role key - keep secret!)
-
-### 3. Set up the database
-
-1. Go to the SQL Editor in Supabase Dashboard
-2. Copy and run the contents of `supabase/migrations/001_initial_schema.sql`
-3. This creates the `profiles`, `attendance`, and `audit_log` tables with RLS policies
-
-### 4. Configure environment variables
-
-Create a `.env.local` file in the project root:
+Create `.env.local`:
 
 ```env
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-
-# QR Code Secret (generate a random 32-byte string)
-QR_SECRET=your_32_byte_random_secret
-
-# Cloudflare Turnstile (optional - for CAPTCHA)
-NEXT_PUBLIC_TURNSTILE_SITE_KEY=your_turnstile_site_key
-TURNSTILE_SECRET_KEY=your_turnstile_secret_key
-
-# App URL
+NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
+QR_SECRET=<32-byte-hex-string>
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+RESEND_API_KEY=<resend-api-key>
+EMAIL_FROM=onboarding@resend.dev
 ```
 
-### 5. Run the development server
+Run database migrations in Supabase SQL Editor (in order):
+- `supabase/migrations/001_initial_schema.sql`
+- `supabase/migrations/002_member_ids.sql`
+- `supabase/migrations/003_fix_recursive_rls.sql`
+- `supabase/migrations/004_add_bio.sql`
+- `supabase/migrations/005_security_hardening.sql`
+- `supabase/migrations/006_features.sql`
+- `supabase/migrations/007_signup_approval.sql`
+- `supabase/migrations/008_fix_trigger_and_unique_constraint.sql`
+- `supabase/migrations/009_new_signup_flow.sql`
+- `supabase/migrations/011_performance_indexes.sql`
 
 ```bash
-npm run dev
+npm run dev          # Start dev server on port 3000
 ```
 
-Visit http://localhost:3000 to see the application.
+## Architecture
 
-## Deployment to Cloudflare Pages
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── admin/
+│   │   │   └── dashboard/route.ts   # Combined: 11 parallel queries, single auth check
+│   │   ├── auth/
+│   │   │   ├── login/route.ts       # Password + pending check
+│   │   │   ├── signup/route.ts      # Creates auth user + profile + OTP
+│   │   │   ├── otp/verify/route.ts  # Two-phase session creation
+│   │   │   ├── forgot-password/route.ts
+│   │   │   └── reset-password/route.ts
+│   │   └── me/route.ts              # Combined: profile + attendance + announcements + events + competitions + team
+│   ├── dashboard/                   # Member dashboard (client component)
+│   ├── admin/                       # Admin panel (client component)
+│   └── waiting-approval/            # Pending approval page
+├── components/
+│   ├── SuppressWarnings.tsx         # Dev console warning filter
+│   ├── Robot3D.tsx                  # Three.js 3D robot
+│   ├── HeroSection.tsx              # Auth-aware hero with dynamic 3D import
+│   └── ui/                          # shadcn/ui components
+├── lib/
+│   ├── supabase/
+│   │   ├── admin.ts                 # Service role client (bypasses RLS)
+│   │   ├── server.ts                # Server client
+│   │   ├── client.ts                # Browser client
+│   │   └── middleware.ts            # PUBLIC_PATHS config
+│   ├── crypto.ts                    # SHA-256, OTP gen, HMAC signing
+│   ├── otp.ts                       # OTP issuance with dev fallback
+│   ├── email.ts                     # Resend SDK with console.log fallback
+│   ├── rate-limit.ts                # In-memory rate limiter
+│   ├── validation.ts                # Zod schemas
+│   └── audit.ts                     # Audit logging
+├── middleware.ts                     # Excludes api/ from session checks
+└── types/database.ts                # TypeScript interfaces
+```
 
-### 1. Install Wrangler CLI
+## Authentication Flow
+
+### Login (Two-Phase)
+1. User submits email + password
+2. Server verifies password via temp Supabase client
+3. Session tokens stored in signed `otp_pending_session` cookie
+4. 6-digit OTP issued (SHA-256 hashed, 10-min expiry)
+5. User enters OTP → session created → cookies forwarded to response
+6. Browser client reads cookies via `document.cookie` → auth check passes
+
+### Signup (Admin-Approval)
+1. User enters name + email + password + invite code
+2. Auth user created + profile (pending=true) + OTP issued
+3. User verifies OTP → sees "waiting for approval" page
+4. Admin approves (flips pending=false) → user can login
+
+## Test Accounts
+
+| Email | Password | Role |
+|-------|----------|------|
+| `admin@strawhats.test` | `TestPass123!` | Admin |
+| `threat106@gmail.com` | `TestPass123!` | Member (TM-206) |
+| `theat106@gmail.com` | `TestPass123!` | Member (TM-106) |
+
+## Commands
 
 ```bash
-npm install -g wrangler
+npm run dev          # Development server (Turbopack)
+npm run build        # Production build
+npm run start        # Production server
+npm run lint         # ESLint
+npm run deploy       # Build + deploy to Cloudflare
+node_modules/.bin/vitest run  # Run tests
 ```
 
-### 2. Login to Cloudflare
+## Known Issues
 
-```bash
-wrangler login
-```
-
-### 3. Build and deploy
-
-```bash
-npm run deploy
-```
-
-Or manually:
-
-```bash
-npx opennextjs-cloudflare build
-npx opennextjs-cloudflare deploy
-```
-
-### 4. Configure environment variables in Cloudflare
-
-Go to your Cloudflare Pages project > Settings > Environment variables and add:
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `QR_SECRET`
-- `NEXT_PUBLIC_APP_URL` (your production URL)
-
-## Project Structure
-
-```
-straw-hats-robotics/
-├── src/
-│   ├── app/
-│   │   ├── about/          # About page
-│   │   ├── admin/          # Admin panel
-│   │   │   └── components/ # Admin components
-│   │   ├── api/            # API routes
-│   │   │   ├── attendance/ # Attendance API
-│   │   │   ├── auth/       # Auth callbacks
-│   │   │   └── qr/         # QR generation
-│   │   ├── dashboard/      # User dashboard
-│   │   ├── login/          # Login page
-│   │   ├── signup/         # Signup page
-│   │   ├── globals.css     # Global styles
-│   │   ├── layout.tsx      # Root layout
-│   │   ├── page.tsx        # Home page
-│   │   ├── robots.ts       # Robots.txt
-│   │   └── sitemap.ts      # Sitemap
-│   ├── components/
-│   │   ├── 3d/             # 3D components
-│   │   └── ui/             # UI components
-│   ├── lib/
-│   │   ├── supabase/       # Supabase client
-│   │   └── utils.ts        # Utility functions
-│   ├── types/              # TypeScript types
-│   └── middleware.ts       # Next.js middleware
-├── supabase/
-│   └── migrations/         # Database migrations
-└── public/                 # Static assets
-```
-
-## Security Features
-
-- **Row Level Security (RLS)**: Database-level access control
-- **Secure Sessions**: httpOnly, Secure, SameSite=Strict cookies
-- **CSRF Protection**: Built-in Next.js CSRF protection
-- **CSP Headers**: Content Security Policy headers configured
-- **Rate Limiting**: Implement at Cloudflare level
-- **Audit Logging**: All admin actions are logged
-
-## QR Code System
-
-1. Users get a unique QR code on their dashboard
-2. Admin scans the QR code using the camera or manual entry
-3. Server validates the token and marks attendance
-4. Attendance is idempotent (scanning twice same day is a no-op)
-
-## Admin Features
-
-- User management (approve, make admin)
-- Attendance tracking and history
-- QR code scanner with camera support
-- Audit log of all admin actions
-
-## Development Commands
-
-```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run start        # Start production server
-npm run lint         # Run ESLint
-npm run preview      # Preview with Cloudflare adapter
-npm run deploy       # Build and deploy to Cloudflare
-```
-
-## Contributing
-
-1. Create a feature branch
-2. Make your changes
-3. Run `npm run lint` to check for errors
-4. Test locally with `npm run dev`
-5. Submit a pull request
+- **Resend free tier**: Emails only deliver to `minothepro102030@gmail.com`. Dev fallback logs OTP codes to terminal.
+- **Migration 009 not applied**: `user_id` on `signup_requests` and `email_verified` on `profiles` columns need manual application via Supabase Dashboard SQL Editor.
+- **Migration 011 not applied**: Performance indexes need manual application.
+- **THREE.Clock deprecation**: From R3F v9.6.1 internal usage — cannot be fixed upstream. Suppressed in dev via `SuppressWarnings.tsx`.
 
 ## License
 
-This project is private and proprietary to Straw Hats Robotics team.
-
-## Support
-
-For issues or questions, contact the team lead or create an issue in the repository.
-# StrawHats
+Private and proprietary to Straw Hats Robotics team.

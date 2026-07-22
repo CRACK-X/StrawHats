@@ -1,3 +1,3 @@
 #!/bin/bash
 cd "$(dirname "$0")"
-npx next dev --port 3000
+node_modules/.bin/next dev --port 3000

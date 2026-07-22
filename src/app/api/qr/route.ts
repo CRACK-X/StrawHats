@@ -1,80 +1,75 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { validateInput } from '@/lib/validation';
+import { z } from 'zod';
 import QRCode from 'qrcode';
+
+const qrGenerateSchema = z.object({
+  userId: z.string().uuid('Invalid user ID'),
+  targetUserId: z.string().uuid().optional(),
+});
 
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
-    
+    const admin = createAdminClient();
+
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { userId } = body;
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
 
-    // Users can only generate QR for themselves, admins can generate for anyone
+    const validation = validateInput(qrGenerateSchema, body);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+
+    const { userId } = validation.data;
+
     if (user.id !== userId) {
-      const { data: profile } = await supabase
+      const { data: profile } = await admin
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single();
 
       if (profile?.role !== 'admin') {
-        return NextResponse.json(
-          { error: 'Forbidden' },
-          { status: 403 }
-        );
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
     }
 
-    // Generate QR token
     const qrToken = crypto.randomUUID();
-    const qrTokenHash = await hashToken(qrToken);
+    const encoder = new TextEncoder();
+    const data = encoder.encode(qrToken);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const qrTokenHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-    // Update or insert QR token in database
-    const { error: upsertError } = await supabase
+    const { error: upsertError } = await admin
       .from('profiles')
       .update({ qr_token_hash: qrTokenHash })
       .eq('id', userId);
 
     if (upsertError) {
-      return NextResponse.json(
-        { error: 'Failed to generate QR code' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Failed to generate QR code' }, { status: 500 });
     }
 
-    // Generate QR code image
     const qrCodeDataUrl = await QRCode.toDataURL(qrToken, {
       errorCorrectionLevel: 'H',
       margin: 1,
       width: 256,
     });
 
-    return NextResponse.json({
-      qrToken,
-      qrCodeDataUrl,
-    });
-  } catch (error) {
-    console.error('QR generation error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ qrToken, qrCodeDataUrl });
+  } catch {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-}
-
-async function hashToken(token: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(token);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
