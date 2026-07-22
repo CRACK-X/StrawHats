@@ -1,24 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { createSupabaseClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Users, Trophy, Wrench, LayoutDashboard } from 'lucide-react';
+import dynamic from 'next/dynamic';
 
-const Robot3D = dynamic(() => import('@/components/Robot3D'), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-[400px] bg-white/5 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/5">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
-        <p className="text-slate-400 text-sm">Loading 3D Model...</p>
-      </div>
-    </div>
-  ),
-});
+const ParticleHero = dynamic(() => import('@/components/ParticleHero'), { ssr: false });
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -106,10 +96,9 @@ export default function HeroSection() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="relative"
+            className="relative h-[400px] md:h-[500px] rounded-2xl overflow-hidden"
           >
-            <Robot3D />
-            {/* Decorative glow behind robot */}
+            <ParticleHero />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-cyan-500/10 rounded-full blur-[100px] -z-10" />
           </motion.div>
         </div>
