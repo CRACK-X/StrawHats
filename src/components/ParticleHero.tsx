@@ -10,6 +10,7 @@ interface Particle {
   radius: number;
   baseAlpha: number;
   alpha: number;
+  pulseOffset: number;
 }
 
 export default function ParticleHero() {
@@ -26,9 +27,9 @@ export default function ParticleHero() {
     let w = 0;
     let h = 0;
     const particles: Particle[] = [];
-    const PARTICLE_COUNT = 80;
-    const CONNECT_DIST = 140;
-    const MOUSE_RADIUS = 120;
+    const PARTICLE_COUNT = 160;
+    const CONNECT_DIST = 180;
+    const MOUSE_RADIUS = 160;
 
     let mouseX = -999;
     let mouseY = -999;
@@ -49,11 +50,12 @@ export default function ParticleHero() {
         particles.push({
           x: Math.random() * w,
           y: Math.random() * h,
-          vx: (Math.random() - 0.5) * 0.5,
-          vy: (Math.random() - 0.5) * 0.4 - 0.15,
-          radius: Math.random() * 2 + 1,
-          baseAlpha: Math.random() * 0.5 + 0.2,
+          vx: (Math.random() - 0.5) * 1.2,
+          vy: (Math.random() - 0.5) * 1.0 - 0.3,
+          radius: Math.random() * 2.5 + 1,
+          baseAlpha: Math.random() * 0.6 + 0.4,
           alpha: 0,
+          pulseOffset: Math.random() * Math.PI * 2,
         });
       }
     }
@@ -66,77 +68,86 @@ export default function ParticleHero() {
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
 
-        // wave offset
-        const wave = Math.sin(t * 0.8 + p.x * 0.005) * 12;
+        const wave = Math.sin(t * 1.2 + p.x * 0.008) * 18;
+        const pulse = Math.sin(t * 2 + p.pulseOffset) * 0.2 + 0.8;
 
         p.x += p.vx;
         p.y += p.vy;
 
-        // wrap around
-        if (p.x < -20) p.x = w + 20;
-        if (p.x > w + 20) p.x = -20;
-        if (p.y < -20) p.y = h + 20;
-        if (p.y > h + 20) p.y = -20;
+        if (p.x < -30) p.x = w + 30;
+        if (p.x > w + 30) p.x = -30;
+        if (p.y < -30) p.y = h + 30;
+        if (p.y > h + 30) p.y = -30;
 
-        // mouse repel
         const mdx = p.x - mouseX;
         const mdy = (p.y + wave) - mouseY;
         const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
         if (mdist < MOUSE_RADIUS) {
-          const force = (1 - mdist / MOUSE_RADIUS) * 0.8;
+          const force = (1 - mdist / MOUSE_RADIUS) * 1.5;
           p.vx += (mdx / mdist) * force;
           p.vy += (mdy / mdist) * force;
         }
 
-        // dampen velocity
-        p.vx *= 0.98;
-        p.vy *= 0.98;
+        p.vx *= 0.97;
+        p.vy *= 0.97;
 
         const drawY = p.y + wave;
-        p.alpha += (p.baseAlpha - p.alpha) * 0.05;
+        p.alpha += (p.baseAlpha * pulse - p.alpha) * 0.08;
 
-        // draw particle
         ctx!.beginPath();
-        ctx!.arc(p.x, drawY, p.radius, 0, Math.PI * 2);
+        ctx!.arc(p.x, drawY, p.radius * pulse, 0, Math.PI * 2);
         ctx!.fillStyle = `rgba(34, 211, 238, ${p.alpha})`;
         ctx!.fill();
 
-        // connect nearby particles
+        // glow around each particle
+        if (p.alpha > 0.3) {
+          const glow = ctx!.createRadialGradient(p.x, drawY, 0, p.x, drawY, p.radius * 6);
+          glow.addColorStop(0, `rgba(34, 211, 238, ${p.alpha * 0.2})`);
+          glow.addColorStop(1, 'rgba(34, 211, 238, 0)');
+          ctx!.fillStyle = glow;
+          ctx!.fillRect(p.x - p.radius * 6, drawY - p.radius * 6, p.radius * 12, p.radius * 12);
+        }
+
         for (let j = i + 1; j < particles.length; j++) {
           const p2 = particles[j];
-          const wave2 = Math.sin(t * 0.8 + p2.x * 0.005) * 12;
+          const wave2 = Math.sin(t * 1.2 + p2.x * 0.008) * 18;
           const drawY2 = p2.y + wave2;
           const dx = p.x - p2.x;
           const dy = drawY - drawY2;
           const dist = Math.sqrt(dx * dx + dy * dy);
 
           if (dist < CONNECT_DIST) {
-            const alpha = (1 - dist / CONNECT_DIST) * 0.15;
+            const alpha = (1 - dist / CONNECT_DIST) * 0.35;
+            const lineWidth = (1 - dist / CONNECT_DIST) * 1.2;
             ctx!.beginPath();
             ctx!.moveTo(p.x, drawY);
             ctx!.lineTo(p2.x, drawY2);
             ctx!.strokeStyle = `rgba(34, 211, 238, ${alpha})`;
-            ctx!.lineWidth = 0.5;
+            ctx!.lineWidth = lineWidth;
             ctx!.stroke();
           }
         }
       }
 
-      // floating glow orbs
+      // larger, brighter glow orbs
       const orbs = [
-        { x: w * 0.3, y: h * 0.4, r: 80, color: '0, 180, 216' },
-        { x: w * 0.7, y: h * 0.6, r: 60, color: '139, 92, 246' },
-        { x: w * 0.5, y: h * 0.3, r: 100, color: '0, 180, 216' },
+        { x: w * 0.25, y: h * 0.35, r: 140, color: '0, 180, 216', speed: 0.4 },
+        { x: w * 0.75, y: h * 0.55, r: 110, color: '139, 92, 246', speed: 0.6 },
+        { x: w * 0.5, y: h * 0.25, r: 160, color: '0, 180, 216', speed: 0.3 },
+        { x: w * 0.4, y: h * 0.7, r: 90, color: '6, 182, 212', speed: 0.5 },
+        { x: w * 0.8, y: h * 0.3, r: 100, color: '99, 102, 241', speed: 0.7 },
       ];
 
       for (const orb of orbs) {
-        const ox = orb.x + Math.sin(t * 0.5 + orb.x) * 30;
-        const oy = orb.y + Math.cos(t * 0.3 + orb.y) * 20;
-        const gradient = ctx!.createRadialGradient(ox, oy, 0, ox, oy, orb.r);
-        gradient.addColorStop(0, `rgba(${orb.color}, 0.06)`);
+        const ox = orb.x + Math.sin(t * orb.speed + orb.x) * 40;
+        const oy = orb.y + Math.cos(t * orb.speed * 0.7 + orb.y) * 30;
+        const pulse = Math.sin(t * 0.8 + orb.x) * 0.3 + 0.7;
+        const gradient = ctx!.createRadialGradient(ox, oy, 0, ox, oy, orb.r * pulse);
+        gradient.addColorStop(0, `rgba(${orb.color}, 0.12)`);
+        gradient.addColorStop(0.5, `rgba(${orb.color}, 0.04)`);
         gradient.addColorStop(1, `rgba(${orb.color}, 0)`);
         ctx!.fillStyle = gradient;
-        ctx!.fillRect(ox - orb.r, oy - orb.r, orb.r * 2, orb.r * 2);
+        ctx!.fillRect(ox - orb.r * pulse, oy - orb.r * pulse, orb.r * 2 * pulse, orb.r * 2 * pulse);
       }
 
       animFrame.current = requestAnimationFrame(draw);
