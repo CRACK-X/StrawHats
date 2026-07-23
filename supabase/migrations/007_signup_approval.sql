@@ -21,7 +21,7 @@ INSERT INTO team_roles (name, sort_order) VALUES
   ('Mechanical Engineer', 2),
   ('Electrical Engineer', 3),
   ('Safety Lead', 4),
-  ('Treasurer', 5),
+  ('Operator', 5),
   ('Secretary', 6),
   ('Member', 7)
 ON CONFLICT (name) DO NOTHING;

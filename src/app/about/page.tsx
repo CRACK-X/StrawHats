@@ -61,13 +61,13 @@ export default function AboutPage() {
       {/* Mission */}
       <section className="container mx-auto px-4 py-16">
         <div className="grid md:grid-cols-2 gap-8">
-          <Card className="glass-card h-full">
+          <Card className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl h-full">
             <CardHeader>
               <Target className="w-10 h-10 text-cyan-400 mb-2" />
               <CardTitle className="text-white">Our Mission</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-slate-400 leading-relaxed">
+              <p className="text-slate-300 leading-relaxed">
                 To inspire and educate the next generation of engineers,
                 scientists, and innovators through hands-on experience in
                 underwater robotics. We believe in learning by doing,
@@ -77,7 +77,7 @@ export default function AboutPage() {
             </CardContent>
           </Card>
 
-          <Card className="glass-card h-full">
+          <Card className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl h-full">
             <CardHeader>
               <Target className="w-10 h-10 text-cyan-400 mb-2" />
               <CardTitle className="text-white">What We Stand For</CardTitle>
@@ -92,7 +92,7 @@ export default function AboutPage() {
                   <div className="w-2 h-2 bg-cyan-400 rounded-full mt-2 shadow-sm shadow-cyan-400/50" />
                   <div>
                     <h4 className="text-white font-medium">{value.title}</h4>
-                    <p className="text-sm text-slate-400">{value.desc}</p>
+                    <p className="text-sm text-slate-300">{value.desc}</p>
                   </div>
                 </div>
               ))}
@@ -147,7 +147,7 @@ export default function AboutPage() {
           {teamMembers.map((member) => (
             <Card
               key={member.role}
-              className="glass-card hover:border-cyan-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/5 text-center"
+              className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl hover:border-cyan-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/5 text-center"
             >
               <CardHeader>
                 <div className="w-24 h-24 bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl mx-auto mb-4 flex items-center justify-center border border-white/10">
@@ -165,7 +165,7 @@ export default function AboutPage() {
 
       {/* CTA */}
       <section className="container mx-auto px-4 py-16">
-        <Card className="glass-card border-cyan-500/20">
+        <Card className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl border-cyan-500/20">
           <CardContent className="py-12 text-center space-y-6">
             <h2 className="text-3xl font-bold text-white">Ready to Dive In?</h2>
             <p className="text-slate-300 max-w-2xl mx-auto leading-relaxed">

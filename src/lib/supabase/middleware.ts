@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const PUBLIC_PATHS = ['/login', '/signup', '/otp-verify', '/forgot-password', '/reset-password', '/waiting-approval', '/privacy', '/terms', '/about', '/events', '/competitions', '/team', '/announcements', '/sitemap.xml', '/robots.txt', '/favicon.svg', '/favicon.ico', '/site.webmanifest', '/'];
+const PUBLIC_PATHS = ['/login', '/signup', '/otp-verify', '/forgot-password', '/reset-password', '/waiting-approval', '/privacy', '/terms', '/about', '/events', '/competitions', '/team', '/announcements', '/banned', '/sitemap.xml', '/robots.txt', '/favicon.svg', '/favicon.ico', '/site.webmanifest', '/'];
 const AUTH_PAGES = ['/login', '/signup'];
 
 function isPublic(pathname: string) {
@@ -71,6 +71,24 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
+  }
+
+  // Check if user is banned from site
+  if (user && !pathname.startsWith('/api/') && pathname !== '/banned') {
+    const { data: ban } = await supabase
+      .from('user_bans')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('type', 'site_ban')
+      .eq('active', true)
+      .or('expires_at.is.null,expires_at.gt.now()')
+      .maybeSingle();
+
+    if (ban) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/banned';
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;

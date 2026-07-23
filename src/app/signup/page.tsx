@@ -235,12 +235,11 @@ export default function SignupPage() {
                 id="roleName"
                 value={roleName}
                 onChange={(e) => setRoleName(e.target.value)}
-                style={{ colorScheme: 'dark' }}
                 className="w-full h-11 px-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
               >
-                <option value="" disabled>Select your role...</option>
+                <option value="" disabled className="bg-slate-800 text-slate-300">Select your role...</option>
                 {roles.map(role => (
-                  <option key={role.id} value={role.name}>{role.name}</option>
+                  <option key={role.id} value={role.name} className="bg-slate-800 text-slate-200">{role.name}</option>
                 ))}
               </select>
               <p className="text-xs text-slate-500">Choose the role that best fits your skills</p>

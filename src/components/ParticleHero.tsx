@@ -96,16 +96,17 @@ export default function ParticleHero() {
 
         ctx!.beginPath();
         ctx!.arc(p.x, drawY, p.radius * pulse, 0, Math.PI * 2);
-        ctx!.fillStyle = `rgba(34, 211, 238, ${p.alpha})`;
+        ctx!.fillStyle = `rgba(0, 255, 255, ${p.alpha})`;
         ctx!.fill();
 
         // glow around each particle
         if (p.alpha > 0.3) {
-          const glow = ctx!.createRadialGradient(p.x, drawY, 0, p.x, drawY, p.radius * 6);
-          glow.addColorStop(0, `rgba(34, 211, 238, ${p.alpha * 0.2})`);
-          glow.addColorStop(1, 'rgba(34, 211, 238, 0)');
+          const glow = ctx!.createRadialGradient(p.x, drawY, 0, p.x, drawY, p.radius * 8);
+          glow.addColorStop(0, `rgba(0, 255, 255, ${p.alpha * 0.35})`);
+          glow.addColorStop(0.5, `rgba(0, 200, 255, ${p.alpha * 0.1})`);
+          glow.addColorStop(1, 'rgba(0, 255, 255, 0)');
           ctx!.fillStyle = glow;
-          ctx!.fillRect(p.x - p.radius * 6, drawY - p.radius * 6, p.radius * 12, p.radius * 12);
+          ctx!.fillRect(p.x - p.radius * 8, drawY - p.radius * 8, p.radius * 16, p.radius * 16);
         }
 
         for (let j = i + 1; j < particles.length; j++) {
@@ -122,7 +123,7 @@ export default function ParticleHero() {
             ctx!.beginPath();
             ctx!.moveTo(p.x, drawY);
             ctx!.lineTo(p2.x, drawY2);
-            ctx!.strokeStyle = `rgba(34, 211, 238, ${alpha})`;
+            ctx!.strokeStyle = `rgba(0, 255, 255, ${alpha})`;
             ctx!.lineWidth = lineWidth;
             ctx!.stroke();
           }
@@ -131,10 +132,10 @@ export default function ParticleHero() {
 
       // larger, brighter glow orbs
       const orbs = [
-        { x: w * 0.25, y: h * 0.35, r: 140, color: '0, 180, 216', speed: 0.4 },
-        { x: w * 0.75, y: h * 0.55, r: 110, color: '139, 92, 246', speed: 0.6 },
-        { x: w * 0.5, y: h * 0.25, r: 160, color: '0, 180, 216', speed: 0.3 },
-        { x: w * 0.4, y: h * 0.7, r: 90, color: '6, 182, 212', speed: 0.5 },
+        { x: w * 0.25, y: h * 0.35, r: 140, color: '0, 255, 255', speed: 0.4 },
+        { x: w * 0.75, y: h * 0.55, r: 110, color: '168, 85, 247', speed: 0.6 },
+        { x: w * 0.5, y: h * 0.25, r: 160, color: '0, 220, 255', speed: 0.3 },
+        { x: w * 0.4, y: h * 0.7, r: 90, color: '0, 255, 200', speed: 0.5 },
         { x: w * 0.8, y: h * 0.3, r: 100, color: '99, 102, 241', speed: 0.7 },
       ];
 
@@ -143,8 +144,8 @@ export default function ParticleHero() {
         const oy = orb.y + Math.cos(t * orb.speed * 0.7 + orb.y) * 30;
         const pulse = Math.sin(t * 0.8 + orb.x) * 0.3 + 0.7;
         const gradient = ctx!.createRadialGradient(ox, oy, 0, ox, oy, orb.r * pulse);
-        gradient.addColorStop(0, `rgba(${orb.color}, 0.12)`);
-        gradient.addColorStop(0.5, `rgba(${orb.color}, 0.04)`);
+        gradient.addColorStop(0, `rgba(${orb.color}, 0.18)`);
+        gradient.addColorStop(0.5, `rgba(${orb.color}, 0.06)`);
         gradient.addColorStop(1, `rgba(${orb.color}, 0)`);
         ctx!.fillStyle = gradient;
         ctx!.fillRect(ox - orb.r * pulse, oy - orb.r * pulse, orb.r * 2 * pulse, orb.r * 2 * pulse);

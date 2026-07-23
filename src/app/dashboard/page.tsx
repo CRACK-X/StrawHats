@@ -134,6 +134,12 @@ export default function DashboardPage() {
               {sidebarOpen && <span className="ml-3">Home</span>}
             </Button>
           </Link>
+          <Link href="/chat">
+            <Button variant="ghost" className="w-full justify-start text-slate-400 hover:text-white hover:bg-white/5">
+              <MessageSquare className="w-5 h-5 shrink-0" />
+              {sidebarOpen && <span className="ml-3">Chat</span>}
+            </Button>
+          </Link>
           {profile?.role === 'admin' && (
             <Link href="/admin">
               <Button variant="ghost" className="w-full justify-start text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10">

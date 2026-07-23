@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+declare global { interface BarcodeDetector { detect(image: ImageBitmapSource): Promise<Array<{ rawValue: string }>>; } interface Window { BarcodeDetector?: new (options?: { formats?: string[] }) => BarcodeDetector; } }
+
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { createSupabaseClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -15,7 +17,8 @@ import {
   User, Calendar, LogOut, Home, Loader2, Shield, Megaphone, Pin,
   Trophy, Wrench, MessageSquare, FileText, Users, ChevronLeft,
   Search, Copy, Trash2, Check, X, Eye, ChevronDown, QrCode, UserPlus,
-  Settings, BarChart3, Mail, Clock, Hash, BookOpen, ClipboardList, ScrollText
+  Settings, BarChart3, Mail, Clock, Hash, BookOpen, ClipboardList, ScrollText,
+  Download, Ban, Camera, AlertTriangle
 } from 'lucide-react';
 
 interface Profile { id: string; full_name: string; member_id: string; role: string; bio: string; pending: boolean; created_at: string; }
@@ -30,7 +33,9 @@ interface Skill { id: string; name: string; category: string; }
 interface SignupRequest { id: string; full_name: string; email: string; role_name: string; status: string; rejection_reason: string | null; created_at: string; }
 interface TeamRole { id: string; name: string; sort_order: number; }
 
-type Tab = 'overview' | 'signups' | 'users' | 'attendance' | 'codes' | 'messages' | 'events' | 'competitions' | 'announcements' | 'documents' | 'skills' | 'logs';
+interface SecurityLog { id: number; event_type: string; severity: string; user_id: string | null; ip_address: string | null; details: Record<string, unknown> | null; created_at: string; }
+
+type Tab = 'overview' | 'signups' | 'users' | 'attendance' | 'codes' | 'messages' | 'events' | 'competitions' | 'announcements' | 'documents' | 'skills' | 'logs' | 'chat' | 'security';
 
 const navItems: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }>; count?: number }[] = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -39,11 +44,13 @@ const navItems: { id: Tab; label: string; icon: React.ComponentType<{ className?
   { id: 'attendance', label: 'Attendance', icon: ClipboardList },
   { id: 'codes', label: 'Invite Codes', icon: Hash },
   { id: 'messages', label: 'Messages', icon: Mail },
+  { id: 'chat', label: 'Chat', icon: MessageSquare },
   { id: 'events', label: 'Events', icon: Calendar },
   { id: 'competitions', label: 'Competitions', icon: Trophy },
   { id: 'announcements', label: 'Announcements', icon: Megaphone },
   { id: 'documents', label: 'Documents', icon: FileText },
   { id: 'skills', label: 'Skills', icon: Wrench },
+  { id: 'security', label: 'Security', icon: Shield },
   { id: 'logs', label: 'Audit Logs', icon: ScrollText },
 ];
 
@@ -62,6 +69,7 @@ export default function AdminPage() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [signupRequests, setSignupRequests] = useState<SignupRequest[]>([]);
   const [teamRoles, setTeamRoles] = useState<TeamRole[]>([]);
+  const [securityLogs, setSecurityLogs] = useState<SecurityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -195,14 +203,16 @@ export default function AdminPage() {
           {activeTab === 'overview' && <AdminOverview users={users} attendance={attendance} pendingSignups={pendingSignups} openMessages={openMessages} memberIds={memberIds} />}
           {activeTab === 'signups' && <AdminSignups requests={signupRequests} onRefresh={() => fetch('/api/admin/signup-requests').then(r => r.json()).then(d => setSignupRequests(d.requests || []))} />}
           {activeTab === 'users' && <AdminUsers users={users} search={search} />}
-          {activeTab === 'attendance' && <AdminAttendance attendance={attendance} />}
+          {activeTab === 'attendance' && <AdminAttendance attendance={attendance} onRefresh={() => fetch('/api/admin/dashboard').then(r => r.json()).then(d => setAttendance(d.attendance || []))} />}
           {activeTab === 'codes' && <AdminCodes memberIds={memberIds} />}
           {activeTab === 'messages' && <AdminMessages contacts={contacts} />}
+          {activeTab === 'chat' && <AdminChatPlaceholder />}
           {activeTab === 'events' && <AdminEvents events={events} />}
           {activeTab === 'competitions' && <AdminCompetitions competitions={competitions} />}
-          {activeTab === 'announcements' && <AdminAnnouncements announcements={announcements} />}
+          {activeTab === 'announcements' && <AdminAnnouncements announcements={announcements} onRefresh={() => fetch('/api/admin/dashboard').then(r => r.json()).then(d => setAnnouncements(d.announcements || []))} />}
           {activeTab === 'documents' && <AdminDocuments documents={documents} />}
           {activeTab === 'skills' && <AdminSkills skills={skills} />}
+          {activeTab === 'security' && <AdminSecurity logs={securityLogs} onRefresh={() => fetch('/api/admin/security-logs').then(r => r.json()).then(d => setSecurityLogs(d.logs || []))} />}
           {activeTab === 'logs' && <AdminLogs />}
         </div>
       </main>
@@ -213,45 +223,71 @@ export default function AdminPage() {
 function AdminOverview({ users, attendance, pendingSignups, openMessages, memberIds }: {
   users: Profile[]; attendance: Attendance[]; pendingSignups: number; openMessages: number; memberIds: MemberId[];
 }) {
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const res = await fetch('/api/admin/backup', { method: 'POST' });
+      if (res.ok) {
+        const d = await res.json();
+        const blob = new Blob([JSON.stringify(d.data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `backup-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch { /* ignore */ }
+    setExporting(false);
+  };
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-slate-400">Total Users</p>
-              <Users className="w-4 h-4 text-cyan-400" />
-            </div>
-            <p className="text-2xl font-bold text-white mt-1">{users.length}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-slate-400">Pending Signups</p>
-              <UserPlus className="w-4 h-4 text-yellow-400" />
-            </div>
-            <p className="text-2xl font-bold text-white mt-1">{pendingSignups}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-slate-400">Today&apos;s Attendance</p>
-              <ClipboardList className="w-4 h-4 text-green-400" />
-            </div>
-            <p className="text-2xl font-bold text-white mt-1">{attendance.length}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-slate-400">Open Messages</p>
-              <Mail className="w-4 h-4 text-red-400" />
-            </div>
-            <p className="text-2xl font-bold text-white mt-1">{openMessages}</p>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-between">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
+          <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-slate-400">Total Users</p>
+                <Users className="w-4 h-4 text-cyan-400" />
+              </div>
+              <p className="text-2xl font-bold text-white mt-1">{users.length}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-slate-400">Pending Signups</p>
+                <UserPlus className="w-4 h-4 text-yellow-400" />
+              </div>
+              <p className="text-2xl font-bold text-white mt-1">{pendingSignups}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-slate-400">Today&apos;s Attendance</p>
+                <ClipboardList className="w-4 h-4 text-green-400" />
+              </div>
+              <p className="text-2xl font-bold text-white mt-1">{attendance.length}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-slate-400">Open Messages</p>
+                <Mail className="w-4 h-4 text-red-400" />
+              </div>
+              <p className="text-2xl font-bold text-white mt-1">{openMessages}</p>
+            </CardContent>
+          </Card>
+        </div>
+        <Button onClick={handleExport} disabled={exporting} className="ml-4 bg-cyan-600 hover:bg-cyan-700 text-white shrink-0">
+          {exporting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
+          Export Data
+        </Button>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -374,75 +410,257 @@ function AdminUsers({ users, search }: { users: Profile[]; search: string }) {
     u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
     u.member_id?.toLowerCase().includes(search.toLowerCase())
   );
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [timeoutDialog, setTimeoutDialog] = useState<string | null>(null);
+  const [timeoutDuration, setTimeoutDuration] = useState('30');
+
+  const handleAction = async (userId: string, action: string, duration?: string) => {
+    setActionLoading(userId);
+    try {
+      await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action, duration }),
+      });
+    } catch { /* ignore */ }
+    setActionLoading(null);
+    setTimeoutDialog(null);
+  };
 
   return (
-    <Card className="bg-white/5 backdrop-blur-xl border-white/10">
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Member ID</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Joined</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map(u => (
-              <TableRow key={u.id}>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-md shadow-cyan-500/20">
-                      {u.full_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
-                    </div>
-                    <div>
-                      <p className="text-white text-sm">{u.full_name}</p>
-                      <p className="text-xs text-slate-500">{u.bio?.slice(0, 40)}{u.bio && u.bio.length > 40 ? '...' : ''}</p>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="font-mono text-sm">{u.member_id}</TableCell>
-                <TableCell><Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>{u.role}</Badge></TableCell>
-                <TableCell><Badge variant={u.pending ? 'warning' : 'success'}>{u.pending ? 'pending' : 'active'}</Badge></TableCell>
-                <TableCell className="text-sm text-slate-400">{formatDate(u.created_at)}</TableCell>
+    <div className="space-y-4">
+      <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Member ID</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Joined</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+            </TableHeader>
+            <TableBody>
+              {filtered.map(u => (
+                <TableRow key={u.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-md shadow-cyan-500/20">
+                        {u.full_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                      </div>
+                      <div>
+                        <p className="text-white text-sm">{u.full_name}</p>
+                        <p className="text-xs text-slate-500">{u.bio?.slice(0, 40)}{u.bio && u.bio.length > 40 ? '...' : ''}</p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">{u.member_id}</TableCell>
+                  <TableCell><Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>{u.role}</Badge></TableCell>
+                  <TableCell><Badge variant={u.pending ? 'warning' : 'success'}>{u.pending ? 'pending' : 'active'}</Badge></TableCell>
+                  <TableCell className="text-sm text-slate-400">{formatDate(u.created_at)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => handleAction(u.id, 'ban_chat')} disabled={actionLoading === u.id} className="text-yellow-400 hover:text-yellow-300 hover:bg-yellow-400/10" title="Ban from Chat">
+                        <Ban className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => handleAction(u.id, 'ban_site')} disabled={actionLoading === u.id} className="text-red-400 hover:text-red-300 hover:bg-red-400/10" title="Ban from Site">
+                        <Ban className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setTimeoutDialog(u.id)} disabled={actionLoading === u.id} className="text-orange-400 hover:text-orange-300 hover:bg-orange-400/10" title="Timeout">
+                        <Clock className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Dialog open={!!timeoutDialog} onOpenChange={() => setTimeoutDialog(null)}>
+        <DialogContent className="bg-slate-900 border-white/10">
+          <DialogHeader>
+            <DialogTitle className="text-white">Set Timeout Duration</DialogTitle>
+            <DialogDescription className="text-slate-400">Choose how long the user will be timed out.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              {['15', '30', '60', '1440'].map(m => (
+                <Button key={m} variant={timeoutDuration === m ? 'default' : 'outline'} onClick={() => setTimeoutDuration(m)} className={timeoutDuration === m ? 'bg-cyan-600 text-white' : 'border-white/10 text-slate-300'}>
+                  {m === '1440' ? '24h' : `${m}m`}
+                </Button>
+              ))}
+            </div>
+            <Input type="number" value={timeoutDuration} onChange={e => setTimeoutDuration(e.target.value)} className="bg-white/5 border-white/10 text-white" placeholder="Minutes" />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setTimeoutDialog(null)} className="text-slate-400">Cancel</Button>
+            <Button onClick={() => timeoutDialog && handleAction(timeoutDialog, 'timeout', timeoutDuration)} disabled={!timeoutDuration || Number(timeoutDuration) <= 0} className="bg-orange-600 hover:bg-orange-700 text-white">
+              Apply Timeout
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
-function AdminAttendance({ attendance }: { attendance: Attendance[] }) {
+function AdminAttendance({ attendance, onRefresh }: { attendance: Attendance[]; onRefresh: () => void }) {
+  const [qrToken, setQrToken] = useState('');
+  const [scanResult, setScanResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  const handleScan = async () => {
+    if (!qrToken.trim()) return;
+    setScanning(true);
+    setScanResult(null);
+    try {
+      const res = await fetch('/api/admin/scan-qr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qrToken: qrToken.trim() }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setScanResult({ success: true, message: `Attendance recorded for ${d.user?.full_name || 'user'}` });
+        setQrToken('');
+        onRefresh();
+      } else {
+        setScanResult({ success: false, message: d.error || 'Scan failed' });
+      }
+    } catch {
+      setScanResult({ success: false, message: 'Network error' });
+    }
+    setScanning(false);
+  };
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+        setCameraActive(true);
+      }
+    } catch {
+      setScanResult({ success: false, message: 'Camera access denied' });
+    }
+  };
+
+  const captureFrame = async () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0);
+
+    if ('BarcodeDetector' in window) {
+      try {
+        const bitmap = await createImageBitmap(canvas);
+        const detector = new window.BarcodeDetector!({ formats: ['qr_code'] });
+        const barcodes = await detector.detect(bitmap);
+        if (barcodes.length > 0) {
+          setQrToken(barcodes[0].rawValue);
+        } else {
+          setScanResult({ success: false, message: 'No QR code detected in frame' });
+        }
+      } catch {
+        setScanResult({ success: false, message: 'QR detection failed — use manual entry' });
+      }
+    } else {
+      setScanResult({ success: false, message: 'BarcodeDetector not supported — use manual entry' });
+    }
+  };
+
   return (
-    <Card className="bg-white/5 backdrop-blur-xl border-white/10">
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Member ID</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Time</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {attendance.length === 0 ? (
-              <TableRow><TableCell colSpan={4} className="text-center text-slate-500 py-8">No attendance records today</TableCell></TableRow>
-            ) : attendance.map(a => (
-              <TableRow key={a.id}>
-                <TableCell className="text-white">{a.profiles?.full_name || '—'}</TableCell>
-                <TableCell className="font-mono text-sm">{a.profiles?.member_id || '—'}</TableCell>
-                <TableCell className="text-sm">{formatDate(a.attended_on)}</TableCell>
-                <TableCell className="text-sm text-slate-400">{(() => { try { return new Date(a.scanned_at).toLocaleTimeString(); } catch { return '—'; } })()}</TableCell>
+    <div className="space-y-6">
+      <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-white text-base flex items-center gap-2"><QrCode className="w-4 h-4" /> QR Attendance Scanner</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {cameraActive && (
+            <div className="relative rounded-lg overflow-hidden border border-white/10">
+              <video ref={videoRef} className="w-full max-h-64 object-cover bg-black" playsInline muted />
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-48 h-48 border-2 border-cyan-400/60 rounded-xl" />
+              </div>
+              <div className="absolute bottom-2 right-2 flex gap-2">
+                <Button size="sm" onClick={captureFrame} className="bg-cyan-600 hover:bg-cyan-700 text-white">
+                  <Camera className="w-4 h-4 mr-1" /> Capture
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => { const s = videoRef.current?.srcObject as MediaStream; s?.getTracks().forEach(t => t.stop()); setCameraActive(false); }} className="text-white bg-white/10 hover:bg-white/20">
+                  Stop
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3">
+            <Input
+              placeholder="Enter QR token manually..."
+              value={qrToken}
+              onChange={e => setQrToken(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleScan()}
+              className="bg-white/5 border-white/10 text-white flex-1"
+            />
+            <Button onClick={handleScan} disabled={scanning || !qrToken.trim()} className="bg-cyan-600 hover:bg-cyan-700 text-white">
+              {scanning ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
+              Record
+            </Button>
+            {!cameraActive && (
+              <Button onClick={startCamera} variant="outline" className="border-white/10 text-slate-300 hover:bg-white/5">
+                <Camera className="w-4 h-4 mr-2" /> Camera
+              </Button>
+            )}
+          </div>
+
+          {scanResult && (
+            <div className={`flex items-center gap-2 p-3 rounded-lg text-sm ${scanResult.success ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+              {scanResult.success ? <Check className="w-4 h-4 shrink-0" /> : <AlertTriangle className="w-4 h-4 shrink-0" />}
+              {scanResult.message}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Member ID</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Time</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+            </TableHeader>
+            <TableBody>
+              {attendance.length === 0 ? (
+                <TableRow><TableCell colSpan={4} className="text-center text-slate-500 py-8">No attendance records today</TableCell></TableRow>
+              ) : attendance.map(a => (
+                <TableRow key={a.id}>
+                  <TableCell className="text-white">{a.profiles?.full_name || '—'}</TableCell>
+                  <TableCell className="font-mono text-sm">{a.profiles?.member_id || '—'}</TableCell>
+                  <TableCell className="text-sm">{formatDate(a.attended_on)}</TableCell>
+                  <TableCell className="text-sm text-slate-400">{(() => { try { return new Date(a.scanned_at).toLocaleTimeString(); } catch { return '—'; } })()}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -592,31 +810,92 @@ function AdminCompetitions({ competitions }: { competitions: Competition[] }) {
   );
 }
 
-function AdminAnnouncements({ announcements }: { announcements: Announcement[] }) {
+function AdminAnnouncements({ announcements, onRefresh }: { announcements: Announcement[]; onRefresh: () => void }) {
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [pinned, setPinned] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const handlePost = async () => {
+    if (!title.trim() || !content.trim()) return;
+    setPosting(true);
+    try {
+      const res = await fetch('/api/admin/announcements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: title.trim(), content: content.trim(), pinned }),
+      });
+      if (res.ok) {
+        setTitle('');
+        setContent('');
+        setPinned(false);
+        onRefresh();
+      }
+    } catch { /* ignore */ }
+    setPosting(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    setDeleting(id);
+    try {
+      const res = await fetch(`/api/admin/announcements/${id}`, { method: 'DELETE' });
+      if (res.ok) onRefresh();
+    } catch { /* ignore */ }
+    setDeleting(null);
+  };
+
   return (
-    <div className="space-y-4">
-      {announcements.length === 0 ? (
-        <Card className="bg-white/5 backdrop-blur-xl border-white/10">
-          <CardContent className="py-12 text-center">
-            <Megaphone className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-400">No announcements</p>
-          </CardContent>
-        </Card>
-      ) : announcements.map(a => (
-        <Card key={a.id} className={`bg-white/5 backdrop-blur-xl border-white/10 ${a.pinned ? 'border-cyan-500/30' : ''}`}>
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-white font-medium flex items-center gap-2">
-                  {a.pinned && <Pin className="w-4 h-4 text-cyan-400" />} {a.title}
-                </h3>
-                <p className="text-sm text-slate-400 mt-1 line-clamp-2">{a.content}</p>
+    <div className="space-y-6">
+      <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-white text-base">New Announcement</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Input placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} className="bg-white/5 border-white/10 text-white" />
+          <textarea placeholder="Content" value={content} onChange={e => setContent(e.target.value)} rows={3} className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 resize-none" />
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer select-none">
+              <input type="checkbox" checked={pinned} onChange={e => setPinned(e.target.checked)} className="rounded border-white/20 bg-white/5 accent-cyan-500" />
+              <Pin className="w-3.5 h-3.5" /> Pin this announcement
+            </label>
+            <Button onClick={handlePost} disabled={posting || !title.trim() || !content.trim()} className="bg-cyan-600 hover:bg-cyan-700 text-white">
+              {posting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Megaphone className="w-4 h-4 mr-2" />}
+              Post
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="space-y-4">
+        {announcements.length === 0 ? (
+          <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+            <CardContent className="py-12 text-center">
+              <Megaphone className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+              <p className="text-slate-400">No announcements</p>
+            </CardContent>
+          </Card>
+        ) : announcements.map(a => (
+          <Card key={a.id} className={`bg-white/5 backdrop-blur-xl border-white/10 ${a.pinned ? 'border-cyan-500/30' : ''}`}>
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-white font-medium flex items-center gap-2">
+                    {a.pinned && <Pin className="w-4 h-4 text-cyan-400" />} {a.title}
+                  </h3>
+                  <p className="text-sm text-slate-400 mt-1 line-clamp-2">{a.content}</p>
+                </div>
+                <div className="flex items-center gap-2 ml-3 shrink-0">
+                  <span className="text-xs text-slate-500">{formatDate(a.created_at)}</span>
+                  <Button size="icon" variant="ghost" onClick={() => handleDelete(a.id)} disabled={deleting === a.id} className="text-slate-400 hover:text-red-400 hover:bg-red-400/10 h-8 w-8">
+                    {deleting === a.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  </Button>
+                </div>
               </div>
-              <span className="text-xs text-slate-500">{formatDate(a.created_at)}</span>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
@@ -677,6 +956,79 @@ function AdminSkills({ skills }: { skills: Skill[] }) {
         </Card>
       )}
     </div>
+  );
+}
+
+function AdminSecurity({ logs, onRefresh }: { logs: SecurityLog[]; onRefresh: () => void }) {
+  const [severityFilter, setSeverityFilter] = useState<string>('all');
+
+  useEffect(() => { onRefresh(); }, []);
+
+  const filtered = severityFilter === 'all' ? logs : logs.filter(l => l.severity === severityFilter);
+
+  const severityColor = (s: string) => {
+    switch (s) {
+      case 'info': return 'bg-blue-500/15 text-blue-400 border-blue-500/20';
+      case 'warning': return 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20';
+      case 'critical': return 'bg-red-500/15 text-red-400 border-red-500/20';
+      default: return 'bg-slate-500/15 text-slate-400 border-slate-500/20';
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <select value={severityFilter} onChange={e => setSeverityFilter(e.target.value)} className="bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
+          <option value="all">All Severity</option>
+          <option value="info">Info</option>
+          <option value="warning">Warning</option>
+          <option value="critical">Critical</option>
+        </select>
+        <Button onClick={onRefresh} variant="outline" size="sm" className="border-white/10 text-slate-300 hover:bg-white/5">Refresh</Button>
+      </div>
+
+      <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Event Type</TableHead>
+                <TableHead>Severity</TableHead>
+                <TableHead>User</TableHead>
+                <TableHead>IP</TableHead>
+                <TableHead>Time</TableHead>
+                <TableHead>Details</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.length === 0 ? (
+                <TableRow><TableCell colSpan={6} className="text-center text-slate-500 py-8">No security logs</TableCell></TableRow>
+              ) : filtered.map(l => (
+                <TableRow key={l.id}>
+                  <TableCell><Badge variant="outline">{l.event_type}</Badge></TableCell>
+                  <TableCell><span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${severityColor(l.severity)}`}>{l.severity}</span></TableCell>
+                  <TableCell className="text-sm text-slate-400 font-mono">{l.user_id ? l.user_id.slice(0, 8) + '...' : '—'}</TableCell>
+                  <TableCell className="text-sm text-slate-400 font-mono">{l.ip_address || '—'}</TableCell>
+                  <TableCell className="text-sm text-slate-400">{formatDate(l.created_at)}</TableCell>
+                  <TableCell className="text-xs text-slate-500 max-w-[200px] truncate">{l.details ? JSON.stringify(l.details) : '—'}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function AdminChatPlaceholder() {
+  return (
+    <Card className="bg-white/5 backdrop-blur-xl border-white/10">
+      <CardContent className="py-12 text-center">
+        <MessageSquare className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+        <p className="text-slate-400">Chat management coming soon</p>
+      </CardContent>
+    </Card>
   );
 }
 

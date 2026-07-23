@@ -11,9 +11,26 @@ export function checkRateLimit(
     RATE_LIMIT_STORE.set(key, { count: 1, resetAt: now + windowMs });
     return true;
   }
-  if (entry.count >= maxRequests) return false;
+  if (entry.count >= maxRequests) {
+    logRateLimitHit(key, maxRequests, windowMs);
+    return false;
+  }
   entry.count++;
   return true;
+}
+
+async function logRateLimitHit(key: string, maxRequests: number, windowMs: number) {
+  try {
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const admin = createAdminClient();
+    await admin.from('security_logs').insert({
+      event_type: 'rate_limit_hit',
+      severity: 'warning',
+      details: { key, maxRequests, windowMs },
+    });
+  } catch {
+    // silent fail for security logging
+  }
 }
 
 // Cleanup old entries periodically
