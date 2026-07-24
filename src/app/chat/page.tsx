@@ -99,14 +99,15 @@ export default function ChatPage() {
   const [deleteMode, setDeleteMode] = useState<'for_me' | 'for_everyone' | null>(null);
   const [deleteConfirmChecked, setDeleteConfirmChecked] = useState(false);
   const [favFilter, setFavFilter] = useState(false);
+  const [debugOpen, setDebugOpen] = useState(false);
 
   const logRef = useRef(0);
   const addLog = useCallback((level: 'error' | 'warn' | 'info', message: string, detail?: string) => {
     const id = ++logRef.current;
     const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' });
-    setChatLogs(prev => [...prev.slice(-19), { id, level, message, detail, time }]);
-    if (level !== 'info') {
-      setTimeout(() => setChatLogs(prev => prev.filter(l => l.id !== id)), 8000);
+    setChatLogs(prev => [...prev.slice(-49), { id, level, message, detail, time }]);
+    if (level === 'info') {
+      setTimeout(() => setChatLogs(prev => prev.filter(l => l.id !== id)), 5000);
     }
   }, []);
 
@@ -172,7 +173,8 @@ export default function ChatPage() {
         setMessages((data.messages || []).reverse());
         setChatBan({ banned: data.banned || false, timed_out: data.timed_out || false, timeout_until: data.timeout_until });
       } else {
-        addLog('error', 'Failed to load messages', `HTTP ${res.status}`);
+        const errBody = await res.json().catch(() => ({}));
+        addLog('error', 'Failed to load messages', `HTTP ${res.status}: ${errBody.error || 'unknown'}${errBody.detail ? ' — ' + errBody.detail : ''}`);
       }
     } catch (e) {
       addLog('error', 'Network error loading messages', e instanceof Error ? e.message : String(e));
@@ -315,7 +317,7 @@ export default function ChatPage() {
       } else {
         const data = await res.json().catch(() => ({}));
         setMessages(prev => prev.filter(m => m.id !== tempId));
-        addLog('error', 'Oh no! Seems like you hit an ultra rare error. Try again later.', data.error || `HTTP ${res.status}`);
+        addLog('error', 'Message failed to send', `HTTP ${res.status}: ${data.error || 'unknown'}${data.detail ? ' — ' + data.detail : ''}`);
       }
     } catch {
       setMessages(prev => prev.filter(m => m.id !== tempId));
@@ -337,11 +339,12 @@ export default function ChatPage() {
         body: JSON.stringify({ content: newContent }),
       });
       if (!res.ok) {
-        addLog('error', 'Oh no! Seems like you hit an ultra rare error. Try again later.', (await res.json().catch(() => ({}))).error || `HTTP ${res.status}`);
+        const errBody = await res.json().catch(() => ({}));
+        addLog('error', 'Edit failed', `${errBody.error || `HTTP ${res.status}`}${errBody.detail ? ' — ' + errBody.detail : ''}`);
         refreshAll();
       }
-    } catch {
-      addLog('error', 'Oh no! Seems like you hit an ultra rare error. Try again later.', 'Network error');
+    } catch (e) {
+      addLog('error', 'Edit failed — network error', e instanceof Error ? e.message : String(e));
       refreshAll();
     }
   };
@@ -355,7 +358,8 @@ export default function ChatPage() {
         setDeleteConfirmChecked(false);
         const res = await fetch(`/api/chat/messages/${msgId}`, { method: 'POST' });
         if (!res.ok) {
-          addLog('error', 'Oh no! Seems like you hit an ultra rare error. Try again later.', (await res.json().catch(() => ({}))).error || `HTTP ${res.status}`);
+          const errBody = await res.json().catch(() => ({}));
+          addLog('error', 'Delete for me failed', `${errBody.error || `HTTP ${res.status}`}${errBody.detail ? ' — ' + errBody.detail : ''}`);
           refreshAll();
         }
       } else {
@@ -365,12 +369,13 @@ export default function ChatPage() {
         setDeleteConfirmChecked(false);
         const res = await fetch(`/api/chat/messages/${msgId}`, { method: 'DELETE' });
         if (!res.ok) {
-          addLog('error', 'Oh no! Seems like you hit an ultra rare error. Try again later.', (await res.json().catch(() => ({}))).error || `HTTP ${res.status}`);
+          const errBody = await res.json().catch(() => ({}));
+          addLog('error', 'Delete for everyone failed', `${errBody.error || `HTTP ${res.status}`}${errBody.detail ? ' — ' + errBody.detail : ''}`);
           refreshAll();
         }
       }
-    } catch {
-      addLog('error', 'Oh no! Seems like you hit an ultra rare error. Try again later.', 'Network error');
+    } catch (e) {
+      addLog('error', 'Delete failed — network error', e instanceof Error ? e.message : String(e));
       refreshAll();
     }
   };
@@ -462,10 +467,10 @@ export default function ChatPage() {
             fetchConversations();
           } else {
             const data = await res.json().catch(() => ({}));
-            addLog('error', 'Oh no! Seems like you hit an ultra rare error. Try again later.', data.error || `HTTP ${res.status}`);
+            addLog('error', 'Voice upload failed', `${data.error || `HTTP ${res.status}`}${data.detail ? ' — ' + data.detail : ''}`);
           }
-        } catch {
-          addLog('error', 'Oh no! Seems like you hit an ultra rare error. Try again later.', 'Voice upload failed');
+        } catch (e) {
+          addLog('error', 'Voice upload failed', e instanceof Error ? e.message : String(e));
         }
         setUploading(false);
         setRecording(false);
@@ -810,6 +815,12 @@ export default function ChatPage() {
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
+                {chatLogs.filter(l => l.level === 'error').length > 0 && (
+                  <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 relative" onClick={() => setDebugOpen(!debugOpen)} title="View error logs">
+                    <AlertCircle className="w-5 h-5" />
+                    <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 rounded-full text-[8px] text-white font-bold flex items-center justify-center">{Math.min(chatLogs.filter(l => l.level === 'error').length, 9)}</span>
+                  </Button>
+                )}
                 {activeConv?.type === 'group' && (
                   <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white hover:bg-white/5" onClick={() => { setMembersPanelOpen(!membersPanelOpen); if (!membersPanelOpen) fetchGroupMembers(activeConvId); }} title="Members">
                     <Users className="w-5 h-5" />
@@ -1242,6 +1253,51 @@ export default function ChatPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Debug Log Panel */}
+      <Dialog open={debugOpen} onOpenChange={setDebugOpen}>
+        <DialogContent className="bg-slate-900 border-white/10 max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-red-400" /> Error Logs
+              {chatLogs.filter(l => l.level === 'error').length > 0 && (
+                <Badge variant="destructive" className="ml-2">{chatLogs.filter(l => l.level === 'error').length}</Badge>
+              )}
+            </DialogTitle>
+            <DialogDescription className="text-slate-400 text-sm">
+              Recent errors from the chat system. Share this info when reporting bugs.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-2 min-h-0">
+            {chatLogs.length === 0 ? (
+              <p className="text-slate-500 text-sm text-center py-8">No errors logged</p>
+            ) : (
+              chatLogs.slice().reverse().map(log => (
+                <div key={log.id} className={`p-3 rounded-lg border text-sm ${log.level === 'error' ? 'bg-red-500/5 border-red-500/20' : log.level === 'warn' ? 'bg-yellow-500/5 border-yellow-500/20' : 'bg-cyan-500/5 border-cyan-500/20'}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className={`font-medium ${log.level === 'error' ? 'text-red-400' : log.level === 'warn' ? 'text-yellow-400' : 'text-cyan-400'}`}>{log.message}</p>
+                      {log.detail && <p className="text-slate-400 text-xs mt-1 break-all font-mono">{log.detail}</p>}
+                      <p className="text-slate-600 text-[10px] mt-1">{log.time}</p>
+                    </div>
+                    <button onClick={() => setChatLogs(prev => prev.filter(l => l.id !== log.id))} className="text-slate-500 hover:text-white transition-colors shrink-0">
+                      <XIcon className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="flex items-center justify-between pt-2 border-t border-white/5">
+            <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard.writeText(chatLogs.map(l => `[${l.time}] ${l.level.toUpperCase()}: ${l.message}${l.detail ? ' — ' + l.detail : ''}`).join('\n')); }} className="text-slate-400 hover:text-white text-xs">
+              <Download className="w-3.5 h-3.5 mr-1" /> Copy Logs
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setChatLogs([])} className="text-slate-400 hover:text-white text-xs">
+              Clear All
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Expanded Image Dialog */}
       <Dialog open={!!expandedImage} onOpenChange={() => setExpandedImage(null)}>
         <DialogContent className="bg-slate-800 border-slate-700 max-w-3xl p-2">
@@ -1249,20 +1305,22 @@ export default function ChatPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Error Log Toasts */}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col-reverse gap-2 max-w-sm pointer-events-none">
-        {chatLogs.map((log) => (
-          <div key={log.id} className={`pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-xl border shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-2 fade-in duration-300 ${log.level === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-300' : log.level === 'warn' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-300' : 'bg-cyan-500/10 border-cyan-500/20 text-cyan-300'}`}>
-            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{log.message}</p>
-              {log.detail && <p className="text-xs opacity-60 mt-0.5 truncate">{log.detail}</p>}
-              <p className="text-[10px] opacity-40 mt-1">{log.time}</p>
+      {/* Error Log Toasts + Debug Panel */}
+      {chatLogs.length > 0 && (
+        <div className="fixed bottom-4 right-4 z-50 flex flex-col-reverse gap-2 max-w-sm pointer-events-none">
+          {chatLogs.filter(l => l.level !== 'info').slice(-5).map((log) => (
+            <div key={log.id} className={`pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-xl border shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-2 fade-in duration-300 ${log.level === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-300' : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-300'}`}>
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">{log.message}</p>
+                {log.detail && <p className="text-xs opacity-60 mt-0.5 break-all">{log.detail}</p>}
+                <p className="text-[10px] opacity-40 mt-1">{log.time}</p>
+              </div>
+              <button onClick={() => setChatLogs(prev => prev.filter(l => l.id !== log.id))} className="text-current opacity-40 hover:opacity-100 transition-opacity shrink-0"><XIcon className="w-3.5 h-3.5" /></button>
             </div>
-            <button onClick={() => setChatLogs(prev => prev.filter(l => l.id !== log.id))} className="text-current opacity-40 hover:opacity-100 transition-opacity shrink-0"><XIcon className="w-3.5 h-3.5" /></button>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

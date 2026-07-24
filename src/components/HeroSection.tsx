@@ -96,10 +96,19 @@ export default function HeroSection() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="relative h-[400px] md:h-[500px] rounded-2xl overflow-hidden"
+            className="relative h-[400px] md:h-[500px] rounded-2xl p-[2px]"
           >
-            <ParticleHero />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-cyan-500/10 rounded-full blur-[100px] -z-10" />
+            {/* Outer border glow */}
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-500/30 via-transparent to-blue-500/30 pointer-events-none" />
+            {/* Outer square border */}
+            <div className="absolute inset-0 rounded-2xl border border-cyan-500/20 pointer-events-none" />
+            {/* Inner square border */}
+            <div className="absolute inset-3 rounded-xl border border-cyan-500/10 pointer-events-none" />
+            {/* Canvas container — clipped to inner square */}
+            <div className="absolute inset-3 rounded-xl overflow-hidden">
+              <ParticleHero />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-cyan-500/10 rounded-full blur-[100px] -z-10 pointer-events-none" />
+            </div>
           </motion.div>
         </div>
       </section>

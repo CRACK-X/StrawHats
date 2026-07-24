@@ -1,0 +1,16 @@
+{
+  "name": "Straw Hats Robotics",
+  "short_name": "Straw Hats",
+  "description": "Student robotics team competing in ROV and underwater robotics competitions",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#06b6d4",
+  "icons": [
+    {
+      "src": "/New_LOGO.png",
+      "sizes": "676x369",
+      "type": "image/png"
+    }
+  ]
+}

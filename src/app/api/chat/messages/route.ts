@@ -3,6 +3,55 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimit } from '@/lib/rate-limit';
 
+async function fetchMessagesWithProfiles(admin: ReturnType<typeof createAdminClient>, conversationId: string, limit: number, before?: string | null) {
+  let query = admin
+    .from('chat_messages')
+    .select('id, conversation_id, user_id, content, message_type, file_url, file_name, file_size, reply_to_id, duration, created_at')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (before) {
+    const { data: cursorMsg } = await admin
+      .from('chat_messages')
+      .select('created_at')
+      .eq('id', before)
+      .single();
+    if (cursorMsg) {
+      query = query.lt('created_at', cursorMsg.created_at);
+    }
+  }
+
+  const { data: messages, error: msgError } = await query;
+  if (msgError) {
+    console.error('[chat/messages] Query error:', msgError.message, msgError.details, msgError.hint);
+    throw new Error(`DB query failed: ${msgError.message}`);
+  }
+
+  const msgs = messages || [];
+
+  const userIds = [...new Set(msgs.map(m => m.user_id))];
+  let profileMap: Record<string, string> = {};
+  if (userIds.length > 0) {
+    try {
+      const { data: profiles } = await admin
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+      if (profiles) {
+        for (const p of profiles) profileMap[p.id] = p.full_name;
+      }
+    } catch (e) {
+      console.error('[chat/messages] Profile fetch failed:', e);
+    }
+  }
+
+  return msgs.map(m => ({
+    ...m,
+    profiles: profileMap[m.user_id] ? { full_name: profileMap[m.user_id] } : null,
+  }));
+}
+
 export async function GET(request: Request) {
   try {
     const supabase = await createClient();
@@ -22,11 +71,16 @@ export async function GET(request: Request) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100);
     const before = searchParams.get('before');
 
-    const { data: conv } = await admin
+    const { data: conv, error: convError } = await admin
       .from('conversations')
       .select('type')
       .eq('id', conversationId)
       .maybeSingle();
+
+    if (convError) {
+      console.error('[chat/messages] Conversation query error:', convError.message);
+      return NextResponse.json({ error: 'Failed to query conversations', detail: convError.message }, { status: 500 });
+    }
 
     if (!conv) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
@@ -45,34 +99,9 @@ export async function GET(request: Request) {
       }
     }
 
-    let query = admin
-      .from('chat_messages')
-      .select('*, profiles(full_name)')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
+    const visibleMsgs = await fetchMessagesWithProfiles(admin, conversationId, limit, before);
 
-    if (before) {
-      const { data: cursorMsg } = await admin
-        .from('chat_messages')
-        .select('created_at')
-        .eq('id', before)
-        .single();
-
-      if (cursorMsg) {
-        query = query.lt('created_at', cursorMsg.created_at);
-      }
-    }
-
-    const { data: messages, error: msgError } = await query;
-
-    if (msgError) {
-      return NextResponse.json({ error: 'Failed to fetch messages', detail: msgError.message }, { status: 500 });
-    }
-
-    const msgs = messages || [];
-
-    const msgIds = msgs.map(m => m.id);
+    const msgIds = visibleMsgs.map(m => m.id);
 
     let softDeleted = new Set<string>();
     if (msgIds.length > 0) {
@@ -88,12 +117,12 @@ export async function GET(request: Request) {
       } catch { /* table may not exist yet */ }
     }
 
-    const visibleMsgs = msgs.filter(m => !softDeleted.has(m.id));
+    const filteredMsgs = visibleMsgs.filter(m => !softDeleted.has(m.id));
 
     let reactionsMap: Record<string, Array<{ emoji: string; user_id: string }>> = {};
-    if (visibleMsgs.length > 0) {
+    if (filteredMsgs.length > 0) {
       try {
-        const visibleIds = visibleMsgs.map(m => m.id);
+        const visibleIds = filteredMsgs.map(m => m.id);
         const { data: reactions } = await admin
           .from('message_reactions')
           .select('message_id, emoji, user_id')
@@ -107,31 +136,40 @@ export async function GET(request: Request) {
       } catch { /* table may not exist yet */ }
     }
 
-    const replyIds = visibleMsgs.filter(m => m.reply_to_id).map(m => m.reply_to_id!);
+    const replyIds = filteredMsgs.filter(m => m.reply_to_id).map(m => m.reply_to_id!);
     let replyMap: Record<string, { id: string; content: string | null; user_id: string; full_name: string | null; message_type: string; file_url: string | null }> = {};
     if (replyIds.length > 0) {
       try {
         const { data: replyMsgs } = await admin
           .from('chat_messages')
-          .select('id, content, user_id, message_type, file_url, profiles(full_name)')
+          .select('id, content, user_id, message_type, file_url')
           .in('id', replyIds);
         if (replyMsgs) {
+          const replyUserIds = [...new Set(replyMsgs.map(r => r.user_id))];
+          let replyProfileMap: Record<string, string> = {};
+          if (replyUserIds.length > 0) {
+            try {
+              const { data: rp } = await admin.from('profiles').select('id, full_name').in('id', replyUserIds);
+              if (rp) for (const p of rp) replyProfileMap[p.id] = p.full_name;
+            } catch { /* ignore */ }
+          }
           for (const rm of replyMsgs) {
-            replyMap[rm.id] = { id: rm.id, content: rm.content, user_id: rm.user_id, full_name: (rm.profiles as unknown as { full_name: string })?.full_name || null, message_type: rm.message_type, file_url: rm.file_url || null };
+            replyMap[rm.id] = { id: rm.id, content: rm.content, user_id: rm.user_id, full_name: replyProfileMap[rm.user_id] || null, message_type: rm.message_type, file_url: rm.file_url || null };
           }
         }
       } catch { /* table or column may not exist yet */ }
     }
 
-    const enriched = visibleMsgs.map(m => ({
+    const enriched = filteredMsgs.map(m => ({
       ...m,
       reactions: reactionsMap[m.id] || [],
       reply_to: m.reply_to_id ? replyMap[m.reply_to_id] || null : null,
     }));
 
     return NextResponse.json({ messages: enriched });
-  } catch {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } catch (e) {
+    console.error('[chat/messages] GET error:', e);
+    return NextResponse.json({ error: 'Internal server error', detail: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }
 }
 
@@ -244,18 +282,31 @@ export async function POST(request: Request) {
       file_name: validatedFileName,
       file_size: validatedFileSize,
     };
-    if (reply_to_id && typeof reply_to_id === 'string') insertData.reply_to_id = reply_to_id;
-    if (validatedDuration) insertData.duration = validatedDuration;
 
-    const { data: message, error: insertError } = await admin
-      .from('chat_messages')
-      .insert(insertData)
-      .select('*, profiles(full_name)')
-      .single();
+    let insertResult;
+    try {
+      insertResult = await admin
+        .from('chat_messages')
+        .insert(insertData)
+        .select('id, conversation_id, user_id, content, message_type, file_url, file_name, file_size, created_at')
+        .single();
+    } catch (e) {
+      console.error('[chat/messages] POST insert error:', e);
+      return NextResponse.json({ error: 'Failed to send message', detail: e instanceof Error ? e.message : String(e) }, { status: 500 });
+    }
+
+    const { data: message, error: insertError } = insertResult;
 
     if (insertError) {
+      console.error('[chat/messages] POST insert DB error:', insertError.message, insertError.details, insertError.hint);
       return NextResponse.json({ error: 'Failed to send message', detail: insertError.message }, { status: 500 });
     }
+
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .maybeSingle();
 
     try {
       await admin
@@ -264,8 +315,9 @@ export async function POST(request: Request) {
         .eq('id', conversation_id);
     } catch { /* non-critical */ }
 
-    return NextResponse.json({ message });
-  } catch {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ message: { ...message, profiles: profile ? { full_name: profile.full_name } : null } });
+  } catch (e) {
+    console.error('[chat/messages] POST error:', e);
+    return NextResponse.json({ error: 'Internal server error', detail: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }
 }
