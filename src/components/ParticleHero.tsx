@@ -27,7 +27,7 @@ export default function ParticleHero() {
     let w = 0;
     let h = 0;
     const particles: Particle[] = [];
-    const PARTICLE_COUNT = 160;
+    const PARTICLE_COUNT = 80;
     const CONNECT_DIST = 180;
     const MOUSE_RADIUS = 160;
 
@@ -49,7 +49,7 @@ export default function ParticleHero() {
       for (let i = 0; i < PARTICLE_COUNT; i++) {
         particles.push({
           x: Math.random() * w,
-          y: Math.random() * h,
+          y: 18 + Math.random() * (h - 36),
           vx: (Math.random() - 0.5) * 1.2,
           vy: (Math.random() - 0.5) * 1.0 - 0.3,
           radius: Math.random() * 2.5 + 1,
@@ -60,6 +60,8 @@ export default function ParticleHero() {
       }
     }
 
+    const WAVE_AMPLITUDE = 18;
+
     function draw(time: number) {
       ctx!.clearRect(0, 0, w, h);
 
@@ -68,16 +70,16 @@ export default function ParticleHero() {
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
 
-        const wave = Math.sin(t * 1.2 + p.x * 0.008) * 18;
+        const wave = Math.sin(t * 1.2 + p.x * 0.008) * WAVE_AMPLITUDE;
         const pulse = Math.sin(t * 2 + p.pulseOffset) * 0.2 + 0.8;
 
         p.x += p.vx;
         p.y += p.vy;
 
-        if (p.x < -30) p.x = w + 30;
-        if (p.x > w + 30) p.x = -30;
-        if (p.y < -30) p.y = h + 30;
-        if (p.y > h + 30) p.y = -30;
+        if (p.x < 0) { p.x = 0; p.vx = Math.abs(p.vx) * 0.5; }
+        if (p.x > w) { p.x = w; p.vx = -Math.abs(p.vx) * 0.5; }
+        if (p.y < WAVE_AMPLITUDE) { p.y = WAVE_AMPLITUDE; p.vy = Math.abs(p.vy) * 0.5; }
+        if (p.y > h - WAVE_AMPLITUDE) { p.y = h - WAVE_AMPLITUDE; p.vy = -Math.abs(p.vy) * 0.5; }
 
         const mdx = p.x - mouseX;
         const mdy = (p.y + wave) - mouseY;
@@ -91,7 +93,7 @@ export default function ParticleHero() {
         p.vx *= 0.97;
         p.vy *= 0.97;
 
-        const drawY = p.y + wave;
+        const drawY = Math.max(0, Math.min(h, p.y + wave));
         p.alpha += (p.baseAlpha * pulse - p.alpha) * 0.08;
 
         ctx!.beginPath();
@@ -140,15 +142,18 @@ export default function ParticleHero() {
       ];
 
       for (const orb of orbs) {
-        const ox = orb.x + Math.sin(t * orb.speed + orb.x) * 40;
-        const oy = orb.y + Math.cos(t * orb.speed * 0.7 + orb.y) * 30;
         const pulse = Math.sin(t * 0.8 + orb.x) * 0.3 + 0.7;
-        const gradient = ctx!.createRadialGradient(ox, oy, 0, ox, oy, orb.r * pulse);
+        const effectiveR = orb.r * pulse;
+        const rawOx = orb.x + Math.sin(t * orb.speed + orb.x) * 40;
+        const rawOy = orb.y + Math.cos(t * orb.speed * 0.7 + orb.y) * 30;
+        const ox = Math.max(effectiveR, Math.min(w - effectiveR, rawOx));
+        const oy = Math.max(effectiveR, Math.min(h - effectiveR, rawOy));
+        const gradient = ctx!.createRadialGradient(ox, oy, 0, ox, oy, effectiveR);
         gradient.addColorStop(0, `rgba(${orb.color}, 0.18)`);
         gradient.addColorStop(0.5, `rgba(${orb.color}, 0.06)`);
         gradient.addColorStop(1, `rgba(${orb.color}, 0)`);
         ctx!.fillStyle = gradient;
-        ctx!.fillRect(ox - orb.r * pulse, oy - orb.r * pulse, orb.r * 2 * pulse, orb.r * 2 * pulse);
+        ctx!.fillRect(ox - effectiveR, oy - effectiveR, effectiveR * 2, effectiveR * 2);
       }
 
       animFrame.current = requestAnimationFrame(draw);

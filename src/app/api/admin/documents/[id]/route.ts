@@ -9,14 +9,14 @@ async function verifyAdmin(supabase: Awaited<ReturnType<typeof createClient>>, a
   return profile?.role === 'admin' ? user : null;
 }
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params;
     const supabase = await createClient();
     const admin = createAdminClient();
     const user = await verifyAdmin(supabase, admin);
     if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
+    const { id } = await params;
     const { error } = await admin.from('documents').delete().eq('id', id);
     if (error) return NextResponse.json({ error: 'Failed to delete' }, { status: 500 });
 

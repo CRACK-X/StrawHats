@@ -19,7 +19,7 @@ export async function GET() {
       admin.from('announcements').select('*').order('pinned', { ascending: false }).order('created_at', { ascending: false }),
       admin.from('events').select('*').gte('event_date', new Date().toISOString().split('T')[0]).order('event_date', { ascending: true }),
       admin.from('competitions').select('*').order('date_from', { ascending: false }),
-      admin.from('profiles').select('full_name, member_id, role, bio, avatar_url, created_at').eq('pending', false).order('full_name'),
+      admin.from('profiles').select('id, full_name, member_id, role, bio, avatar_url, created_at').eq('pending', false).order('full_name'),
     ]);
 
     if (profileResult.error) {

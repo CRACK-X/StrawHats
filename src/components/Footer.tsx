@@ -9,10 +9,10 @@ export default function Footer() {
             <img src="/New_LOGO.png" alt="Straw Hats Robotics" className="h-8 w-auto" />
             <span className="text-white font-semibold tracking-tight">Straw Hats Robotics</span>
           </div>
-          <div className="flex flex-wrap gap-6 text-sm text-slate-400">
-            <Link href="/about" className="hover:text-white transition-colors">About</Link>
-            <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
-            <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
+          <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-sm text-slate-400">
+            <Link href="/about" className="hover:text-white transition-colors py-2 px-1">About</Link>
+            <Link href="/privacy" className="hover:text-white transition-colors py-2 px-1">Privacy</Link>
+            <Link href="/terms" className="hover:text-white transition-colors py-2 px-1">Terms</Link>
           </div>
           <p className="text-slate-500 text-sm">&copy; {new Date().getFullYear()} Straw Hats Robotics. All rights reserved.</p>
         </div>

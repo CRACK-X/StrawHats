@@ -64,6 +64,17 @@ export async function GET() {
       return NextResponse.json({ conversations: [] });
     }
 
+    let favSet = new Set<string>();
+    try {
+      const { data: favRows } = await admin
+        .from('conversation_favorites')
+        .select('conversation_id')
+        .eq('user_id', user.id);
+      if (favRows) {
+        for (const f of favRows) favSet.add(f.conversation_id);
+      }
+    } catch { /* table may not exist yet */ }
+
     const { data: conversations, error: convError } = await admin
       .from('conversations')
       .select('*')
@@ -79,7 +90,7 @@ export async function GET() {
         let lastMessage = null;
         const { data: msgs } = await admin
           .from('chat_messages')
-          .select('id, content, file_url, sender_id, created_at')
+          .select('id, content, message_type, file_url, user_id, created_at')
           .eq('conversation_id', conv.id)
           .order('created_at', { ascending: false })
           .limit(1);
@@ -88,27 +99,49 @@ export async function GET() {
         }
 
         let otherMember = null;
+        let members: Array<{ id: string; full_name: string; avatar_url: string | null }> | null = null;
+
         if (conv.type === 'direct') {
-          const { data: members } = await admin
+          const { data: mems } = await admin
             .from('conversation_members')
             .select('user_id')
             .eq('conversation_id', conv.id)
             .neq('user_id', user.id)
             .limit(1);
 
-          if (members && members.length > 0) {
+          if (mems && mems.length > 0) {
             const { data: profile } = await admin
               .from('profiles')
               .select('id, full_name, avatar_url')
-              .eq('id', members[0].user_id)
+              .eq('id', mems[0].user_id)
               .single();
             otherMember = profile;
           }
+        } else if (conv.type === 'group') {
+          const { data: mems } = await admin
+            .from('conversation_members')
+            .select('user_id')
+            .eq('conversation_id', conv.id);
+
+          if (mems && mems.length > 0) {
+            const userIds = mems.map((m) => m.user_id);
+            const { data: profiles } = await admin
+              .from('profiles')
+              .select('id, full_name, avatar_url')
+              .in('id', userIds);
+            members = profiles || [];
+          }
         }
 
-        return { ...conv, lastMessage, otherMember };
+        return { ...conv, lastMessage, otherMember, members, is_favorited: favSet.has(conv.id) };
       })
     );
+
+    results.sort((a, b) => {
+      if (a.is_favorited && !b.is_favorited) return -1;
+      if (!a.is_favorited && b.is_favorited) return 1;
+      return 0;
+    });
 
     return NextResponse.json({ conversations: results });
   } catch {
@@ -133,11 +166,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
 
-    const { type, otherUserId, name } = body as {
+    const bodyParsed = body as {
       type: string;
       otherUserId?: string;
+      userId?: string;
       name?: string;
+      memberIds?: string[];
     };
+
+    const type = bodyParsed.type === 'dm' ? 'direct' : bodyParsed.type;
+    const otherUserId = bodyParsed.otherUserId || bodyParsed.userId;
+    const name = bodyParsed.name;
 
     if (type === 'public') {
       const publicConv = await ensurePublicConversation(admin, user.id);
@@ -192,7 +231,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ conversation: newConv });
     }
 
-    return NextResponse.json({ error: 'Invalid type. Must be "direct" or "public"' }, { status: 400 });
+    if (type === 'group') {
+      const { memberIds, name } = bodyParsed;
+      if (!memberIds || !Array.isArray(memberIds) || memberIds.length < 1) {
+        return NextResponse.json({ error: 'memberIds is required and must contain at least 1 user' }, { status: 400 });
+      }
+
+      const allMemberIds = Array.from(new Set([user.id, ...memberIds]));
+
+      const { data: newConv, error: convError } = await admin
+        .from('conversations')
+        .insert({ type: 'group', name: name || null })
+        .select('*')
+        .single();
+
+      if (convError) {
+        return NextResponse.json({ error: 'Failed to create group chat' }, { status: 500 });
+      }
+
+      await admin.from('conversation_members').insert(
+        allMemberIds.map((uid) => ({ conversation_id: newConv.id, user_id: uid }))
+      );
+
+      return NextResponse.json({ conversation: newConv });
+    }
+
+    return NextResponse.json({ error: 'Invalid type. Must be "direct", "dm", "group", or "public"' }, { status: 400 });
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

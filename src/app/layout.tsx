@@ -146,8 +146,6 @@ export default function RootLayout({
         <meta name="theme-color" content="#020617" />
         <meta name="msapplication-TileColor" content="#020617" />
         <meta name="msapplication-tap-highlight" content="no" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className={inter.className}>
         <script

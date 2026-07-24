@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { QRCodeSVG } from 'qrcode.react';
 import {
   User, Calendar, LogOut, Home, Loader2, Shield, Megaphone, Pin,
-  Trophy, Wrench, MessageSquare, FileText, Users, ChevronLeft,
+  Trophy, Wrench, MessageSquare, FileText, Users, ChevronLeft, Menu, X,
   Clock, MapPin, CheckCircle, BarChart3, Settings, ExternalLink
 } from 'lucide-react';
 
@@ -54,6 +54,7 @@ export default function DashboardPage() {
   const [qrLoading, setQrLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileSidebar, setMobileSidebar] = useState(false);
   const router = useRouter();
   const supabase = createSupabaseClient();
 
@@ -103,8 +104,39 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex">
-      {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-slate-900/60 backdrop-blur-xl border-r border-white/10 flex flex-col transition-all duration-300`}>
+      {/* Mobile sidebar overlay */}
+      {mobileSidebar && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setMobileSidebar(false)} />
+          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-slate-900/95 backdrop-blur-xl border-r border-white/10 flex flex-col">
+            <div className="p-4 border-b border-white/5 flex items-center gap-3">
+              <span className="text-white font-bold text-lg tracking-tight">Dashboard</span>
+              <Button variant="ghost" size="icon" onClick={() => setMobileSidebar(false)} className="text-slate-400 hover:text-white ml-auto hover:bg-white/5">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <nav className="flex-1 p-2 space-y-1">
+              {navItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => { setActiveTab(item.id); setMobileSidebar(false); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                    activeTab === item.id
+                      ? 'bg-cyan-500/15 text-cyan-400 shadow-sm shadow-cyan-500/10'
+                      : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5 shrink-0" />
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </nav>
+          </aside>
+        </div>
+      )}
+
+      {/* Desktop sidebar */}
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-slate-900/60 backdrop-blur-xl border-r border-white/10 flex-col transition-all duration-300 hidden md:flex`}>
         <div className="p-4 border-b border-white/5 flex items-center gap-3">
           {sidebarOpen && <span className="text-white font-bold text-lg tracking-tight">Dashboard</span>}
           <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-slate-400 hover:text-white ml-auto hover:bg-white/5">
@@ -127,53 +159,44 @@ export default function DashboardPage() {
             </button>
           ))}
         </nav>
-        <div className="p-2 border-t border-white/5 space-y-1">
-          <Link href="/">
-            <Button variant="ghost" className="w-full justify-start text-slate-400 hover:text-white hover:bg-white/5">
-              <Home className="w-5 h-5 shrink-0" />
-              {sidebarOpen && <span className="ml-3">Home</span>}
-            </Button>
-          </Link>
-          <Link href="/chat">
-            <Button variant="ghost" className="w-full justify-start text-slate-400 hover:text-white hover:bg-white/5">
-              <MessageSquare className="w-5 h-5 shrink-0" />
-              {sidebarOpen && <span className="ml-3">Chat</span>}
-            </Button>
-          </Link>
-          {profile?.role === 'admin' && (
-            <Link href="/admin">
-              <Button variant="ghost" className="w-full justify-start text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10">
-                <Shield className="w-5 h-5 shrink-0" />
-                {sidebarOpen && <span className="ml-3">Admin</span>}
-              </Button>
-            </Link>
-          )}
-          <Button onClick={handleLogout} variant="ghost" className="w-full justify-start text-slate-400 hover:text-white hover:bg-white/5">
-            <LogOut className="w-5 h-5 shrink-0" />
-            {sidebarOpen && <span className="ml-3">Logout</span>}
-          </Button>
-        </div>
       </aside>
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
         {/* Header */}
-        <header className="border-b border-white/5 bg-slate-900/40 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
+        <header className="border-b border-white/5 bg-slate-900/40 backdrop-blur-xl px-4 md:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-white capitalize tracking-tight">{activeTab === 'overview' ? 'Dashboard' : activeTab}</h1>
+            <button onClick={() => setMobileSidebar(true)} className="md:hidden p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors">
+              <Menu className="w-5 h-5" />
+            </button>
+            <h1 className="text-lg md:text-xl font-bold text-white capitalize tracking-tight">{activeTab === 'overview' ? 'Dashboard' : activeTab}</h1>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
+          <div className="flex items-center gap-1 md:gap-2">
+            <Link href="/">
+              <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white hover:bg-white/5" title="Home">
+                <Home className="w-5 h-5" />
+              </Button>
+            </Link>
+            <Link href="/chat">
+              <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white hover:bg-white/5" title="Chat">
+                <MessageSquare className="w-5 h-5" />
+              </Button>
+            </Link>
+            <Button onClick={handleLogout} variant="ghost" size="icon" className="text-slate-400 hover:text-white hover:bg-white/5" title="Logout">
+              <LogOut className="w-5 h-5" />
+            </Button>
+            <div className="w-px h-6 bg-white/10 mx-0 md:mx-1 hidden sm:block" />
+            <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-white">{profile?.full_name}</p>
               <p className="text-xs text-slate-400">{profile?.member_id}</p>
             </div>
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-cyan-500/20">
-          {profile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2)}
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-cyan-500/20">
+              {profile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2)}
             </div>
           </div>
         </header>
 
-        <div className="p-6">
+        <div className="p-4 md:p-6">
           {activeTab === 'overview' && (
             <OverviewTab
               profile={profile}

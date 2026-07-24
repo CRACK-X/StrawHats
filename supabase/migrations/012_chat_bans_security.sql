@@ -6,7 +6,8 @@ UPDATE team_roles SET name = 'Operator' WHERE name = 'Treasurer';
 -- 2. Chat system
 CREATE TABLE IF NOT EXISTS conversations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  type text NOT NULL CHECK (type IN ('public', 'direct')),
+  type text NOT NULL CHECK (type IN ('public', 'direct', 'group')),
+  name text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );

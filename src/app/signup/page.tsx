@@ -50,6 +50,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [roleName, setRoleName] = useState('');
   const [roles, setRoles] = useState<TeamRole[]>([]);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   useEffect(() => { document.title = 'Sign Up | Straw Hats Robotics'; }, []);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -77,6 +78,12 @@ export default function SignupPage() {
 
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
+      setLoading(false);
+      return;
+    }
+
+    if (!agreedToTerms) {
+      setError('You must agree to the Terms of Service and Privacy Policy.');
       setLoading(false);
       return;
     }
@@ -243,6 +250,23 @@ export default function SignupPage() {
                 ))}
               </select>
               <p className="text-xs text-slate-500">Choose the role that best fits your skills</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={e => setAgreedToTerms(e.target.checked)}
+                  className="mt-0.5 rounded border-white/20 bg-white/5 accent-cyan-500"
+                />
+                <span className="text-sm text-slate-400">
+                  I agree to the{' '}
+                  <Link href="/terms" target="_blank" className="text-cyan-400 hover:text-cyan-300 underline underline-offset-2">Terms of Service</Link>
+                  {' '}and{' '}
+                  <Link href="/privacy" target="_blank" className="text-cyan-400 hover:text-cyan-300 underline underline-offset-2">Privacy Policy</Link>
+                </span>
+              </label>
             </div>
 
             <TurnstileWidget onVerify={setTurnstileToken} />

@@ -37,10 +37,10 @@ export async function GET() {
       signupRes,
       rolesRes,
     ] = await Promise.all([
-      admin.from('profiles').select('id, full_name, member_id, role, bio, pending, created_at').order('created_at', { ascending: false }),
+      admin.from('profiles').select('id, full_name, member_id, role, bio, pending, created_at, email').order('created_at', { ascending: false }),
       admin.from('attendance').select('id, user_id, attended_on, scanned_at, profiles(full_name, member_id)').eq('attended_on', today).order('scanned_at', { ascending: false }),
       admin.from('member_ids').select('id, code, member_id, status, created_at').order('created_at', { ascending: false }),
-      admin.from('contact_requests').select('id, user_id, subject, message, status, created_at, profiles(full_name, member_id)').order('created_at', { ascending: false }),
+      admin.from('contact_requests').select('id, user_id, subject, message, status, created_at, profiles(full_name, member_id, email)').order('created_at', { ascending: false }),
       admin.from('competitions').select('id, name, description, location, date_from, date_to, status, result, url').order('date_from', { ascending: false }),
       admin.from('events').select('id, title, description, event_date, event_time, location, type').order('event_date', { ascending: false }),
       admin.from('announcements').select('id, title, content, pinned, created_at').order('created_at', { ascending: false }),
